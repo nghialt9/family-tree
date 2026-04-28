@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import request from 'supertest';
+import { beforeEach, it, expect } from '@jest/globals';
 import { app } from '../src/app';
 import { prisma, cleanDb } from './setup';
 import { signToken } from '../src/lib/jwt';
@@ -33,4 +34,7 @@ it('GET /api/tree creates SpouseConnector node for spouse pair', async () => {
   expect(res.body.nodes.length).toBe(3);
   const connectorNode = res.body.nodes.find((n: any) => n.type === 'spouseConnector');
   expect(connectorNode).toBeDefined();
+  expect(connectorNode.position).toBeDefined();
+  expect(connectorNode.position.x).toBeDefined();
+  expect(connectorNode.position.y).toBeDefined();
 });

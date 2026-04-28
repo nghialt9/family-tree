@@ -1,28 +1,18 @@
-name: Deploy to GCP
+name: Deploy to fly.io
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.GCP_HOST }}
-          username: ${{ secrets.GCP_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # Di chuyển vào thư mục code (hoặc clone nếu chưa có)
-            cd ~/my-app || git clone https://github.com/user/repo.git ~/my-app
-            cd ~/my-app
-            git pull origin main
-            # Build và chạy lại container
-            docker stop my-container || true
-            docker rm my-container || true
-            docker build -t my-app-image .
-            docker run -d --name my-container -p 80:80 my-app-image
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

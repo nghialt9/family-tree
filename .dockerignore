@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+frontend/.vite
+backend/.env
+**/.git
+docs
+*.md

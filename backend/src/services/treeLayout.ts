@@ -3,6 +3,8 @@ import { Person, Relationship } from '@prisma/client';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 160;
+const CONNECTOR_WIDTH = 1;
+const CONNECTOR_HEIGHT = 1;
 
 export interface TreeNode {
   id: string;
@@ -40,7 +42,7 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     if (!connectorMap.has(key)) {
       const connId = `connector-${key}`;
       connectorMap.set(key, connId);
-      g.setNode(connId, { width: 1, height: 1 });
+      g.setNode(connId, { width: CONNECTOR_WIDTH, height: CONNECTOR_HEIGHT });
       g.setEdge(rel.personAId, connId);
       g.setEdge(rel.personBId, connId);
       edges.push({ id: `spouse-a-${rel.id}`, source: rel.personAId, target: connId, type: 'spouse' });
@@ -83,7 +85,7 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     nodes.push({
       id: connId,
       type: 'spouseConnector',
-      position: { x: node.x, y: node.y },
+      position: { x: node.x - CONNECTOR_WIDTH / 2, y: node.y - CONNECTOR_HEIGHT / 2 },
       data: { label: '' },
     });
   }
