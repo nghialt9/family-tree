@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Person {
+  id          String    @id @default(uuid())
+  fullName    String
+  nickname    String?
+  gender      Gender
+  birthDate   DateTime?
+  deathDate   DateTime?
+  phone       String?
+  address     String?
+  bio         String?
+  avatarUrl   String?
+  generation  Int       @default(1)
+  isAlive     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  relationshipsAsA Relationship[] @relation("PersonA")
+  relationshipsAsB Relationship[] @relation("PersonB")
+  accessToken      AccessToken?
+
+  @@map("persons")
+}
+
+model Relationship {
+  id           String           @id @default(uuid())
+  personAId    String
+  personBId    String
+  type         RelationshipType
+  marriedDate  DateTime?
+  divorcedDate DateTime?
+
+  personA Person @relation("PersonA", fields: [personAId], references: [id], onDelete: Cascade)
+  personB Person @relation("PersonB", fields: [personBId], references: [id], onDelete: Cascade)
+
+  @@map("relationships")
+}
+
+model AccessToken {
+  id           String   @id @default(uuid())
+  phone        String   @unique
+  role         Role
+  label        String?
+  passwordHash String?
+  personId     String?  @unique
+
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@map("access_tokens")
+}
+
+enum Gender {
+  male
+  female
+}
+
+enum RelationshipType {
+  parent_child
+  spouse
+}
+
+enum Role {
+  viewer
+  admin
+}
