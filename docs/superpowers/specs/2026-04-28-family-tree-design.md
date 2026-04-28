@@ -21,7 +21,7 @@ A multi-generation Vietnamese family tree web app for the Lâm family. Stores ri
 | Backend | Node.js + Express |
 | ORM | Prisma |
 | Database | PostgreSQL 16 |
-| Auth | JWT (phone-based, no OTP) |
+| Auth | JWT — viewer: phone only; admin: phone + bcrypt password |
 | Container | Docker (multi-stage) + Docker Compose |
 | Hosting | fly.io — Singapore region |
 | CI/CD | GitHub Actions → flyctl deploy |
@@ -30,14 +30,22 @@ A multi-generation Vietnamese family tree web app for the Lâm family. Stores ri
 
 ## Authentication
 
-Two roles gated by phone number:
+Two roles with different login flows:
 
-- **viewer** — enters phone → receives JWT → can view full family tree and person details
-- **admin** — enters phone → receives JWT with `role: admin` → can add, edit, delete persons and relationships
+- **viewer** — enters phone number only → backend checks `access_tokens` table → receives JWT
+- **admin** — enters phone number + password → backend verifies both → receives JWT with `role: admin`
 
-Phone numbers + roles are stored in `access_tokens` table. No OTP — if the number matches a record, access is granted.
+Phone numbers + roles + hashed passwords are stored in `access_tokens` table.
 
-**Auto-provisioning**: When an admin adds or edits a person with a phone number filled in, a checkbox "Cấp quyền truy cập" appears. If checked, the admin selects a role (viewer/admin) and the backend upserts a record into `access_tokens` in the same transaction as the person save.
+**Login flow (LoginPage.vue):**
+1. User enters phone number → clicks "Tiếp tục"
+2. Backend returns `{ role }` without issuing token yet (just confirms phone exists)
+3. If `role === viewer`: issue JWT immediately, redirect to `/`
+4. If `role === admin`: show second step — password field → user submits → backend verifies bcrypt hash → issue JWT
+
+**Password storage:** Admin passwords are hashed with bcrypt (cost factor 12) and stored in `access_tokens.password_hash`. Viewer accounts have `password_hash = NULL`.
+
+**Auto-provisioning**: When an admin adds or edits a person with a phone number filled in, a checkbox "Cấp quyền truy cập" appears. If checked, the admin selects a role (viewer/admin). If admin role is selected, a password field appears (required). Backend upserts `access_tokens` (including bcrypt-hashed password for admin) in the same transaction as the person save.
 
 ---
 
@@ -78,6 +86,7 @@ Phone numbers + roles are stored in `access_tokens` table. No OTP — if the num
 | phone | VARCHAR UNIQUE | Số điện thoại |
 | role | ENUM(viewer, admin) | |
 | label | VARCHAR NULL | Tên hiển thị ("Chú Lăng", "Admin"…) |
+| password_hash | VARCHAR NULL | bcrypt hash — chỉ admin; viewer để NULL |
 | person_id | UUID FK NULL → persons | Liên kết tới bản ghi người (nếu có) |
 
 ---
@@ -135,7 +144,9 @@ Slide-in panel from the right. Shows: large avatar, full bio, address, all child
 Modal for add/edit. Fields: all `persons` columns. Dropdowns to select father, mother, spouse from existing persons list. If phone is filled: checkbox "Cấp quyền truy cập" → role selector (viewer/admin). On submit, backend saves person + upserts access_token in one transaction.
 
 ### `LoginPage.vue`
-Single phone input. `POST /api/auth/login` → JWT stored in `localStorage` → redirect to `/`.
+Two-step login:
+- **Bước 1**: Nhập SĐT → `POST /api/auth/check-phone` → nếu viewer thì gọi luôn login; nếu admin thì hiện bước 2.
+- **Bước 2** (admin only): Nhập mật khẩu → `POST /api/auth/login` → JWT lưu `localStorage` → redirect `/`.
 
 ---
 
@@ -144,7 +155,8 @@ Single phone input. `POST /api/auth/login` → JWT stored in `localStorage` → 
 ### Auth
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | /api/auth/login | — | {phone} → {token, role} |
+| POST | /api/auth/check-phone | — | {phone} → {role} — bước 1: xác nhận SĐT tồn tại |
+| POST | /api/auth/login | — | {phone, password?} → {token, role} — bước 2: cấp JWT |
 
 ### Persons
 | Method | Path | Auth | Description |
