@@ -25,4 +25,4 @@ COPY --from=backend-build /app/prisma ./prisma
 COPY --from=frontend-build /app/public ./public
 RUN mkdir -p /data/uploads
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node dist/src/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
