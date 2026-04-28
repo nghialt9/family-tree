@@ -34,7 +34,7 @@ import { treeApi } from '../api';
 const props = defineProps<{ focusPersonId?: string | null }>();
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
-const { fitView, setCenter, onNodesInitialized, viewport } = useVueFlow('family-tree');
+const { fitView, setCenter, viewport } = useVueFlow('family-tree');
 
 const rawNodes = ref<any[]>([]);
 const rawEdges = ref<any[]>([]);
@@ -184,39 +184,36 @@ const displayEdges = computed(() =>
 
 // --- Load & fit ---
 
-let fitPending = false;
-onNodesInitialized(() => {
-  if (fitPending) {
-    fitPending = false;
-    nextTick(() => {
-      const focusId = props.focusPersonId;
-      if (focusId) {
-        const target = rawNodes.value.find(n => n.id === focusId);
-        if (target) {
-          // Use setCenter with node's actual position (top-left + half dimensions)
-          setCenter(target.position.x + 115, target.position.y + 60, { zoom: 1.2, duration: 400 });
-          return;
-        }
-      }
-      // Fall back to root generation
-      const rootIds = rawNodes.value
-        .filter(n => n.type === 'person' && n.data?.generation === 1)
-        .map(n => ({ id: n.id }));
-      fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
-    });
+function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
+
+function focusOnPerson() {
+  const focusId = props.focusPersonId;
+  if (focusId) {
+    const target = rawNodes.value.find(n => n.type === 'person' && n.id === focusId);
+    if (target) {
+      setCenter(target.position.x + 115, target.position.y + 60, { zoom: 1.2, duration: 0 });
+      return;
+    }
   }
-});
+  const roots = rawNodes.value
+    .filter(n => n.type === 'person' && n.data?.generation === 1)
+    .map(n => ({ id: n.id }));
+  fitView({ nodes: roots.length > 0 ? roots : undefined, padding: 0.3, duration: 0 });
+}
 
 async function loadTree() {
   loading.value = true;
   error.value = '';
   collapsed.clear();
-  fitPending = true;
   try {
     const res = await treeApi.get();
     rawNodes.value = res.data.nodes;
     rawEdges.value = res.data.edges;
     buildMaps(res.data.edges);
+    // Wait for Vue to flush DOM updates, then two paint frames for VueFlow to measure nodes
+    await nextTick();
+    await rAF();
+    focusOnPerson();
   } catch {
     error.value = 'Không tải được dữ liệu gia phả.';
   } finally {
