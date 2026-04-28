@@ -194,27 +194,92 @@ Two-step login:
 
 ## Docker & Deployment
 
-**Local dev:**
+### Local dev
+
 ```bash
 docker-compose up
-# frontend: http://localhost:80
-# backend:  http://localhost:3000
+# postgres:  localhost:5432
+# backend:   http://localhost:3000
 ```
 
-**fly.io:**
-- Region: `sin` (Singapore — closest to Vietnam)
-- **Single fly.io app** `justinlam-familytree`: Express backend serves the built Vue static files from `frontend/dist/`. One Docker image, one `fly.toml`, no nginx on production.
-- Avatar images stored on a fly.io persistent volume mounted at `/data/avatars`
-- Postgres: `fly postgres create` → `fly postgres attach` with persistent volume
-- Secrets: `DATABASE_URL`, `JWT_SECRET` via `fly secrets set`
+`docker-compose.yml` chạy hai service: `postgres:16-alpine` và `backend` (port 3000). Frontend chạy riêng bằng `npm run dev` trong `frontend/`.
 
-**GitHub Actions** (`.github/workflows/deploy.yml`):
+---
+
+### Production — một image duy nhất
+
+Không có nginx. Express vừa serve API lẫn static files của Vue.
+
+```
+Dockerfile (3 stage)
+│
+├── Stage 1 — frontend-build (node:20-alpine)
+│   WORKDIR /app/frontend
+│   npm ci + vite build
+│   Output: /app/frontend/dist/
+│
+├── Stage 2 — backend-build (node:20-alpine)
+│   WORKDIR /app
+│   npm ci + prisma generate + tsc
+│   tsconfig rootDir = "./"  ← bao gồm cả prisma/seed.ts
+│   Output: /app/dist/src/server.js
+│           /app/dist/prisma/seed.js
+│
+└── Stage 3 — production (node:20-alpine)
+    apk add openssl          ← bắt buộc để Prisma migrate chạy được
+    COPY node_modules  ./node_modules
+    COPY dist/         ./dist          ← compiled backend (dist/src/*)
+    COPY prisma/       ./prisma        ← schema + migrations
+    COPY frontend/dist ./public        ← built Vue app
+    EXPOSE 3000
+    CMD: npx prisma migrate deploy && node dist/src/server.js
+```
+
+**Lưu ý quan trọng về đường dẫn:**
+- `tsconfig.json` có `rootDir: "./"` (không phải `"./src"`) để TypeScript compile cả `prisma/seed.ts`.
+- Vì vậy output nằm ở `dist/src/` chứ không phải `dist/` trực tiếp.
+- `app.ts` dùng `path.join(__dirname, '../../public')` (lên 2 cấp từ `dist/src/`) để tìm đúng thư mục static.
+
+**Khi container start:**
+1. `npx prisma migrate deploy` — chạy migration mới (nếu có) trước khi server lên
+2. `node dist/src/server.js` — khởi động Express
+
+---
+
+### fly.io config (`fly.toml`)
+
+| Key | Giá trị |
+|---|---|
+| app | `justinlam-familytree` |
+| region | `sin` (Singapore) |
+| internal_port | `3000` |
+| volume mount | `uploads` → `/data/uploads` (avatar storage) |
+| auto_stop | `true` (tắt khi không có traffic) |
+| DATABASE_URL | fly secret (tự inject khi `postgres attach`) |
+| JWT_SECRET | fly secret (set thủ công) |
+
+---
+
+### CI/CD — GitHub Actions
+
 ```
 push to main
-→ docker build
-→ flyctl deploy
-→ fly ssh console -C "npx prisma migrate deploy"
+→ actions/checkout@v5
+→ superfly/flyctl-actions/setup-flyctl@master
+→ flyctl deploy --remote-only   (build image trên fly builder, không build local)
 ```
+
+Secret cần set trong GitHub repo: `FLY_API_TOKEN`
+
+---
+
+### Seed data (chạy một lần sau deploy đầu tiên)
+
+```bash
+flyctl ssh console --app justinlam-familytree -C "node dist/prisma/seed.js"
+```
+
+Seed file được compile từ `backend/prisma/seed.ts` → `dist/prisma/seed.js`.
 
 ---
 
