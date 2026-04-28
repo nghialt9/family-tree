@@ -1,7 +1,6 @@
-import { PrismaClient, Gender, Role } from '@prisma/client';
+import { Gender, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export interface CreatePersonInput {
   fullName: string;

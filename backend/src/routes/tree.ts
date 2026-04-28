@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { requireViewer } from '../middleware/auth';
 import { buildTree } from '../services/treeLayout';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 router.get('/', requireViewer, async (_req, res) => {
   const [persons, relationships] = await Promise.all([
