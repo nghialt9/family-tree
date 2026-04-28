@@ -1,0 +1,104 @@
+<h2>Kiến trúc hệ thống — Family Tree App</h2>
+<p class="subtitle">Vue 3 + VueFlow · Express API · PostgreSQL · Docker · fly.io</p>
+
+<div class="mockup">
+  <div class="mockup-header">System Architecture</div>
+  <div class="mockup-body" style="font-family:monospace;font-size:12px;line-height:2;padding:20px;">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
+
+      <!-- Browser -->
+      <div style="background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">🌐</div>
+        <div style="color:#58a6ff;font-weight:bold;font-size:13px;">Frontend</div>
+        <div style="color:#8b949e;font-size:11px;margin-top:8px;line-height:1.6;">
+          Vue 3 + Vite<br>
+          VueFlow (tree canvas)<br>
+          Pinia (state)<br>
+          Axios (HTTP)<br>
+          Nginx (serve)
+        </div>
+        <div style="margin-top:10px;background:#161b22;border-radius:6px;padding:6px;font-size:10px;color:#3fb950;">
+          Docker: family-tree-web<br>port 80
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:8px;">
+        <div style="color:#e3b341;font-size:11px;">REST API</div>
+        <div style="color:#aaa;font-size:20px;">⟷</div>
+        <div style="color:#e3b341;font-size:11px;">JSON / JWT</div>
+        <div style="margin-top:16px;background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:12px;width:100%;">
+          <div style="font-size:22px;">🔐</div>
+          <div style="color:#f0883e;font-weight:bold;font-size:11px;">Auth</div>
+          <div style="color:#8b949e;font-size:10px;line-height:1.6;margin-top:4px;">
+            Nhập SĐT → JWT<br>
+            viewer / admin roles
+          </div>
+        </div>
+      </div>
+
+      <!-- Backend -->
+      <div style="background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:16px;">
+        <div style="font-size:28px;margin-bottom:6px;">⚙️</div>
+        <div style="color:#58a6ff;font-weight:bold;font-size:13px;">Backend API</div>
+        <div style="color:#8b949e;font-size:11px;margin-top:8px;line-height:1.6;">
+          Node.js + Express<br>
+          Prisma ORM<br>
+          JWT auth middleware<br>
+          REST endpoints
+        </div>
+        <div style="margin-top:10px;background:#161b22;border-radius:6px;padding:6px;font-size:10px;color:#3fb950;">
+          Docker: family-tree-api<br>port 3000
+        </div>
+      </div>
+
+    </div>
+
+    <!-- DB -->
+    <div style="display:flex;justify-content:center;margin-top:16px;">
+      <div style="color:#aaa;font-size:18px;margin-right:16px;display:flex;align-items:center;">↕</div>
+      <div style="background:#0d1117;border:2px solid #30363d;border-radius:10px;padding:14px;width:220px;text-align:center;">
+        <div style="font-size:26px;margin-bottom:4px;">🗄️</div>
+        <div style="color:#58a6ff;font-weight:bold;font-size:13px;">PostgreSQL</div>
+        <div style="color:#8b949e;font-size:11px;margin-top:6px;line-height:1.6;">
+          Tables: persons, relationships,<br>auth_tokens, media
+        </div>
+        <div style="margin-top:8px;background:#161b22;border-radius:6px;padding:6px;font-size:10px;color:#3fb950;">
+          fly.io Postgres (volume persistent)
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy -->
+    <div style="margin-top:20px;background:#161b22;border-radius:8px;padding:12px;text-align:center;border:1px solid #21262d;">
+      <div style="color:#e3b341;font-size:12px;font-weight:bold;margin-bottom:6px;">🚀 fly.io deployment — app name: justinlam-familytree</div>
+      <div style="color:#8b949e;font-size:11px;">
+        Docker Compose → fly.io · GitHub Actions CI/CD · HTTPS tự động
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:16px;" class="section">
+  <h3>Các trang chính</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+    <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
+      <div style="color:#58a6ff;font-weight:bold;">🔑 /login</div>
+      <div style="color:#8b949e;margin-top:4px;">Nhập SĐT → xác thực → JWT lưu localStorage</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
+      <div style="color:#58a6ff;font-weight:bold;">🌳 / (home)</div>
+      <div style="color:#8b949e;margin-top:4px;">Canvas VueFlow toàn màn hình, zoom/pan, collapse nhánh</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
+      <div style="color:#58a6ff;font-weight:bold;">👤 /person/:id</div>
+      <div style="color:#8b949e;margin-top:4px;">Popup/side-panel chi tiết: ảnh, lịch sử, con cái, vợ/chồng</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:12px;">
+      <div style="color:#58a6ff;font-weight:bold;">🛠️ /admin</div>
+      <div style="color:#8b949e;margin-top:4px;">Thêm/sửa/xóa người, upload ảnh, quản lý quan hệ (admin only)</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,106 @@
+<h2>Docker & Deployment — fly.io</h2>
+<p class="subtitle">App name: justinlam-familytree · HTTPS tự động · PostgreSQL persistent volume</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- Docker structure -->
+  <div>
+    <h3>🐳 Cấu trúc Docker</h3>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.8;">
+      <div style="color:#e3b341;margin-bottom:8px;">📁 Project structure</div>
+      <div style="color:#58a6ff;">family-tree/</div>
+      <div style="color:#aaa;">├── <span style="color:#3fb950;">frontend/</span>         Vue 3 + Vite</div>
+      <div style="color:#aaa;">│   ├── src/</div>
+      <div style="color:#aaa;">│   ├── Dockerfile      multi-stage</div>
+      <div style="color:#aaa;">│   └── nginx.conf</div>
+      <div style="color:#aaa;">├── <span style="color:#3fb950;">backend/</span>          Express API</div>
+      <div style="color:#aaa;">│   ├── src/</div>
+      <div style="color:#aaa;">│   ├── prisma/</div>
+      <div style="color:#aaa;">│   └── Dockerfile</div>
+      <div style="color:#aaa;">├── <span style="color:#3fb950;">fly.toml</span>          fly.io config</div>
+      <div style="color:#aaa;">└── <span style="color:#3fb950;">docker-compose.yml</span> local dev</div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-top:10px;font-family:monospace;font-size:10px;line-height:1.8;">
+      <div style="color:#e3b341;margin-bottom:6px;">docker-compose.yml (local dev)</div>
+      <div style="color:#3fb950;">services:</div>
+      <div style="color:#58a6ff;">  frontend:</div>
+      <div style="color:#aaa;">    build: ./frontend</div>
+      <div style="color:#aaa;">    ports: ["80:80"]</div>
+      <div style="color:#58a6ff;">  backend:</div>
+      <div style="color:#aaa;">    build: ./backend</div>
+      <div style="color:#aaa;">    ports: ["3000:3000"]</div>
+      <div style="color:#aaa;">    env: DATABASE_URL, JWT_SECRET</div>
+      <div style="color:#58a6ff;">  postgres:</div>
+      <div style="color:#aaa;">    image: postgres:16</div>
+      <div style="color:#aaa;">    volumes: [pgdata:/var/lib/postgresql]</div>
+    </div>
+  </div>
+
+  <!-- fly.io deployment -->
+  <div>
+    <h3>🚀 fly.io Deployment</h3>
+
+    <div style="background:#0d1117;border:1px solid #3fb950;border-radius:8px;padding:14px;margin-bottom:10px;">
+      <div style="color:#3fb950;font-weight:bold;font-size:12px;margin-bottom:8px;">fly.io apps</div>
+      <div style="font-size:11px;line-height:2;">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid #21262d;padding-bottom:4px;margin-bottom:4px;">
+          <span style="color:#58a6ff;">justinlam-familytree</span>
+          <span style="color:#8b949e;">frontend + backend</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#f0883e;">justinlam-familytree-db</span>
+          <span style="color:#8b949e;">Postgres managed</span>
+        </div>
+      </div>
+      <div style="margin-top:10px;color:#8b949e;font-size:10px;line-height:1.6;">
+        URL: <span style="color:#58a6ff;">https://justinlam-familytree.fly.dev</span><br>
+        HTTPS tự động · Free tier đủ dùng
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;margin-bottom:10px;">
+      <div style="color:#e3b341;font-weight:bold;font-size:12px;margin-bottom:8px;">fly.toml (tóm tắt)</div>
+      <div style="font-family:monospace;font-size:10px;color:#aaa;line-height:1.8;">
+        <span style="color:#3fb950;">app</span> = "justinlam-familytree"<br>
+        <span style="color:#3fb950;">primary_region</span> = "sin" <span style="color:#555;"># Singapore</span><br>
+        <br>
+        <span style="color:#58a6ff;">[http_service]</span><br>
+        &nbsp;internal_port = 80<br>
+        &nbsp;auto_stop_machines = true<br>
+        <br>
+        <span style="color:#58a6ff;">[env]</span><br>
+        &nbsp;NODE_ENV = "production"
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:14px;">
+      <div style="color:#bc8cff;font-weight:bold;font-size:12px;margin-bottom:8px;">GitHub Actions CI/CD</div>
+      <div style="font-size:11px;color:#8b949e;line-height:1.8;">
+        push → main<br>
+        ↓ build Docker image<br>
+        ↓ flyctl deploy<br>
+        ↓ prisma migrate deploy<br>
+        ↓ live tại fly.dev 🎉
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:rgba(63,185,80,0.08);border-radius:8px;padding:14px;border-left:3px solid #3fb950;">
+  <div style="color:#3fb950;font-weight:bold;font-size:12px;margin-bottom:8px;">✅ Tóm tắt toàn bộ thiết kế</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:#8b949e;line-height:1.8;">
+    <div>✓ Node card kiểu Rich+Expand</div>
+    <div>✓ Vợ/chồng song song, con từ giữa</div>
+    <div>✓ Auth: viewer SĐT + admin SĐT</div>
+    <div>✓ Vue 3 + VueFlow + dagre layout</div>
+    <div>✓ Express API + Prisma + PostgreSQL</div>
+    <div>✓ Docker Compose local dev</div>
+    <div>✓ Deploy fly.io justinlam-familytree</div>
+    <div>✓ GitHub Actions CI/CD tự động</div>
+    <div>✓ Import data gia phả Lâm từ treant-js</div>
+    <div>✓ CRUD qua UI (admin only)</div>
+  </div>
+</div>

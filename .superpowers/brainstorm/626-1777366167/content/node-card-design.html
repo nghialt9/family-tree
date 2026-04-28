@@ -1,0 +1,73 @@
+<h2>Thiết kế card thông tin mỗi người trong gia phả</h2>
+<p class="subtitle">Mỗi node trên cây gia phả sẽ hiển thị thông tin theo kiểu nào?</p>
+
+<div class="cards">
+
+  <!-- Option A: Compact -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;">
+      <div style="background:#16213e;border-radius:10px;padding:12px;text-align:center;border:2px solid #0f3460;font-family:sans-serif;max-width:160px;margin:auto;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#0f3460;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
+        <div style="color:#e94560;font-weight:bold;font-size:13px;">Lâm Trọng Nghĩa</div>
+        <div style="color:#aaa;font-size:11px;">Nam · 29 tuổi</div>
+        <div style="color:#aaa;font-size:11px;">📞 0972737308</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Compact (nhỏ gọn)</h3>
+      <p>Ảnh, họ tên, giới tính, tuổi, SĐT. Phù hợp cây lớn nhiều người, không bị rối.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Medium with more info -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;">
+      <div style="background:#16213e;border-radius:10px;padding:14px;text-align:center;border:2px solid #0f3460;font-family:sans-serif;max-width:190px;margin:auto;">
+        <div style="width:56px;height:56px;border-radius:50%;background:#0f3460;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:24px;">👤</div>
+        <div style="color:#e94560;font-weight:bold;font-size:13px;">Lâm Trọng Nghĩa</div>
+        <div style="color:#aaa;font-size:11px;margin-top:4px;">🎂 01/04/1989 · Nam</div>
+        <div style="color:#aaa;font-size:11px;">📞 0972737308</div>
+        <div style="color:#aaa;font-size:11px;">💍 Nguyễn Thị Lan</div>
+        <div style="background:#0f3460;border-radius:4px;margin-top:8px;padding:3px 6px;color:#88c;font-size:10px;">Con của: Lâm Văn Lăng</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Trung bình (đầy đủ)</h3>
+      <p>Thêm ngày sinh, tên vợ/chồng, tên cha/mẹ. Cân bằng giữa thông tin và không gian.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Rich card with expand -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;">
+      <div style="background:#16213e;border-radius:10px;padding:14px;text-align:left;border:2px solid #0f3460;font-family:sans-serif;max-width:210px;margin:auto;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:#0f3460;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;">👤</div>
+          <div>
+            <div style="color:#e94560;font-weight:bold;font-size:12px;">Lâm Trọng Nghĩa</div>
+            <div style="color:#888;font-size:10px;">Thế hệ 3 · Nam</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid #0f3460;padding-top:8px;font-size:10px;color:#aaa;line-height:1.8;">
+          <div>🎂 01/04/1989 (35 tuổi)</div>
+          <div>📞 0972737308</div>
+          <div>📍 Cần Thơ</div>
+          <div>💍 Nguyễn Thị Lan</div>
+          <div>👶 2 con</div>
+        </div>
+        <div style="margin-top:8px;text-align:center;">
+          <span style="background:#e94560;color:#fff;border-radius:10px;padding:2px 10px;font-size:10px;cursor:pointer;">Chi tiết ▼</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Rich + Expand (chi tiết)</h3>
+      <p>Hiện nhiều info nhất, có nút "Chi tiết" để xem thêm (địa chỉ, ghi chú, ảnh). Phù hợp khi muốn lưu nhiều thế hệ.</p>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:24px;padding:16px;background:rgba(255,255,255,0.05);border-radius:8px;">
+  <p class="subtitle" style="margin:0;">💡 Tất cả 3 kiểu đều có thể click để mở popup xem đầy đủ thông tin (ảnh, ghi chú lịch sử, v.v.)</p>
+</div>

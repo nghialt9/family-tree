@@ -1,0 +1,115 @@
+<h2>UI Components & API Endpoints</h2>
+<p class="subtitle">Các thành phần Vue và REST API của backend</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+  <!-- UI Components -->
+  <div>
+    <h3>🎨 Frontend Components</h3>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#58a6ff;font-weight:bold;font-size:12px;">FamilyTreeCanvas.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        VueFlow canvas toàn màn hình. Tự tính layout từ dữ liệu DB.
+        Zoom/pan/collapse nhánh. Tạo 2 loại node + 2 loại edge.
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#3fb950;font-weight:bold;font-size:12px;">PersonNode.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        Node rich card kiểu C. Ảnh avatar, họ tên, ngày sinh, SĐT,
+        badge thế hệ, nút "Chi tiết". Click mở PersonDrawer.
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#f0883e;font-weight:bold;font-size:12px;">SpouseConnector.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        Node ẩn (invisible) ở giữa 2 vợ chồng. Con cái kết nối xuống từ
+        điểm này. Edge ngang có icon 💍.
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#bc8cff;font-weight:bold;font-size:12px;">PersonDrawer.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        Side panel trượt ra từ phải. Ảnh lớn, tiểu sử đầy đủ, danh sách
+        con cái, link vợ/chồng, nút Sửa (admin only).
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#e3b341;font-weight:bold;font-size:12px;">PersonForm.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        Modal thêm/sửa người. Upload ảnh, chọn cha/mẹ, chọn vợ/chồng
+        từ danh sách. Admin only.
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+      <div style="color:#ff7b72;font-weight:bold;font-size:12px;">LoginPage.vue</div>
+      <div style="color:#8b949e;font-size:11px;margin-top:4px;line-height:1.6;">
+        Nhập SĐT → gọi API → nhận JWT → lưu localStorage → redirect về cây.
+      </div>
+    </div>
+  </div>
+
+  <!-- API Endpoints -->
+  <div>
+    <h3>⚙️ REST API Endpoints</h3>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#e3b341;font-weight:bold;font-size:11px;">AUTH</div>
+      <div style="font-family:monospace;font-size:10px;color:#3fb950;margin-top:6px;line-height:2;">
+        POST /api/auth/login<br>
+        <span style="color:#8b949e">body: {phone} → JWT token + role</span>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#58a6ff;font-weight:bold;font-size:11px;">PERSONS (viewer+)</div>
+      <div style="font-family:monospace;font-size:10px;color:#3fb950;margin-top:6px;line-height:2;">
+        GET  /api/persons<br>
+        GET  /api/persons/:id<br>
+        GET  /api/persons/:id/relatives
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#f0883e;font-weight:bold;font-size:11px;">PERSONS (admin only)</div>
+      <div style="font-family:monospace;font-size:10px;color:#3fb950;margin-top:6px;line-height:2;">
+        POST   /api/persons<br>
+        PUT    /api/persons/:id<br>
+        DELETE /api/persons/:id<br>
+        POST   /api/persons/:id/avatar
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;margin-bottom:10px;">
+      <div style="color:#bc8cff;font-weight:bold;font-size:11px;">RELATIONSHIPS (admin only)</div>
+      <div style="font-family:monospace;font-size:10px;color:#3fb950;margin-top:6px;line-height:2;">
+        POST   /api/relationships<br>
+        DELETE /api/relationships/:id
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px;">
+      <div style="color:#e3b341;font-weight:bold;font-size:11px;">TREE</div>
+      <div style="font-family:monospace;font-size:10px;color:#3fb950;margin-top:6px;line-height:2;">
+        GET /api/tree<br>
+        <span style="color:#8b949e">→ toàn bộ nodes + edges đã tính sẵn<br>cho VueFlow render 1 lần</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;background:rgba(88,166,255,0.08);border-radius:8px;padding:14px;border-left:3px solid #58a6ff;">
+  <div style="color:#58a6ff;font-weight:bold;font-size:12px;margin-bottom:6px;">💡 GET /api/tree — endpoint quan trọng nhất</div>
+  <div style="color:#8b949e;font-size:11px;line-height:1.6;">
+    Backend tính toán layout (dagre algorithm) và trả về list nodes + edges đã có tọa độ x/y.
+    Frontend chỉ cần render — không cần tính toán phức tạp ở client.
+    SpouseConnector nodes cũng được tạo tự động ở đây.
+  </div>
+</div>

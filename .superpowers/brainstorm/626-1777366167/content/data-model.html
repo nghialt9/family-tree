@@ -1,0 +1,92 @@
+<h2>Data Model — PostgreSQL</h2>
+<p class="subtitle">Schema lưu trữ thông tin gia phả, quan hệ cha/con, vợ/chồng</p>
+
+<div class="mockup">
+  <div class="mockup-header">Database Schema (Prisma)</div>
+  <div class="mockup-body" style="font-family:monospace;font-size:11px;line-height:1.7;padding:16px;overflow-x:auto;">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+      <!-- persons table -->
+      <div style="background:#0d1117;border:2px solid #58a6ff;border-radius:8px;padding:14px;">
+        <div style="color:#58a6ff;font-weight:bold;font-size:13px;margin-bottom:10px;">📋 persons</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+          <tr style="color:#e3b341;">
+            <th style="text-align:left;padding:2px 6px;">column</th>
+            <th style="text-align:left;padding:2px 6px;">type</th>
+            <th style="text-align:left;padding:2px 6px;">ghi chú</th>
+          </tr>
+          <tr style="color:#3fb950;"><td style="padding:2px 6px;">id</td><td>UUID PK</td><td></td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">full_name</td><td>VARCHAR</td><td>Họ và tên</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">nickname</td><td>VARCHAR</td><td>Tên thường gọi</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">gender</td><td>ENUM</td><td>male/female</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">birth_date</td><td>DATE</td><td>Ngày sinh</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">death_date</td><td>DATE NULL</td><td>Ngày mất</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">phone</td><td>VARCHAR NULL</td><td>Số điện thoại</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">address</td><td>TEXT NULL</td><td>Địa chỉ</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">bio</td><td>TEXT NULL</td><td>Tiểu sử / ghi chú</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">avatar_url</td><td>VARCHAR NULL</td><td>Ảnh đại diện</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">generation</td><td>INT</td><td>Thế hệ (1,2,3...)</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">is_alive</td><td>BOOLEAN</td><td>Còn sống?</td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">created_at</td><td>TIMESTAMP</td><td></td></tr>
+          <tr style="color:#aaa;"><td style="padding:2px 6px;">updated_at</td><td>TIMESTAMP</td><td></td></tr>
+        </table>
+      </div>
+
+      <!-- relationships + auth -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+
+        <div style="background:#0d1117;border:2px solid #f0883e;border-radius:8px;padding:14px;">
+          <div style="color:#f0883e;font-weight:bold;font-size:13px;margin-bottom:10px;">🔗 relationships</div>
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <tr style="color:#e3b341;">
+              <th style="text-align:left;padding:2px 6px;">column</th>
+              <th style="text-align:left;padding:2px 6px;">type</th>
+              <th style="text-align:left;padding:2px 6px;">ghi chú</th>
+            </tr>
+            <tr style="color:#3fb950;"><td style="padding:2px 6px;">id</td><td>UUID PK</td><td></td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">person_a_id</td><td>UUID FK</td><td>→ persons</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">person_b_id</td><td>UUID FK</td><td>→ persons</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">type</td><td>ENUM</td><td>parent_child / spouse</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">married_date</td><td>DATE NULL</td><td>Ngày cưới (nếu vợ chồng)</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">divorced_date</td><td>DATE NULL</td><td>Ngày ly hôn (nếu có)</td></tr>
+          </table>
+          <div style="margin-top:8px;color:#555;font-size:10px;">
+            parent_child: person_a = cha/mẹ, person_b = con
+          </div>
+        </div>
+
+        <div style="background:#0d1117;border:2px solid #bc8cff;border-radius:8px;padding:14px;">
+          <div style="color:#bc8cff;font-weight:bold;font-size:13px;margin-bottom:10px;">🔐 access_tokens</div>
+          <table style="width:100%;border-collapse:collapse;font-size:10px;">
+            <tr style="color:#e3b341;">
+              <th style="text-align:left;padding:2px 6px;">column</th>
+              <th style="text-align:left;padding:2px 6px;">type</th>
+              <th style="text-align:left;padding:2px 6px;">ghi chú</th>
+            </tr>
+            <tr style="color:#3fb950;"><td style="padding:2px 6px;">id</td><td>UUID PK</td><td></td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">phone</td><td>VARCHAR</td><td>SĐT đăng ký</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">role</td><td>ENUM</td><td>viewer / admin</td></tr>
+            <tr style="color:#aaa;"><td style="padding:2px 6px;">label</td><td>VARCHAR NULL</td><td>"Chú Lăng", "Admin"...</td></tr>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Relationship diagram -->
+    <div style="margin-top:16px;background:#161b22;border-radius:8px;padding:14px;text-align:center;">
+      <div style="color:#e3b341;font-size:11px;font-weight:bold;margin-bottom:10px;">Ví dụ quan hệ trong DB</div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;">
+        <div style="background:#0d1117;border:1px solid #58a6ff;border-radius:6px;padding:6px 10px;color:#58a6ff;">Thúi (gen 1)</div>
+        <div style="color:#aaa;">──parent_child──</div>
+        <div style="background:#0d1117;border:1px solid #3fb950;border-radius:6px;padding:6px 10px;color:#3fb950;">Lăng (gen 2)</div>
+        <div style="color:#aaa;">──spouse──</div>
+        <div style="background:#0d1117;border:1px solid #f0883e;border-radius:6px;padding:6px 10px;color:#f0883e;">Vợ Lăng (gen 2)</div>
+        <div style="color:#aaa;">──parent_child──</div>
+        <div style="background:#0d1117;border:1px solid #bc8cff;border-radius:6px;padding:6px 10px;color:#bc8cff;">Nghĩa (gen 3)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
