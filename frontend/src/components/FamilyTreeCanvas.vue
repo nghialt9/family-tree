@@ -46,8 +46,10 @@ const collapsed = reactive(new Set<string>());
 
 // personId → direct child personIds (for collapse traversal)
 const parentToChildren = ref(new Map<string, string[]>());
-// connectorId → direct child personIds (to decide when connector is hidden)
+// connectorId → direct child personIds
 const connectorChildren = ref(new Map<string, string[]>());
+// connectorId → spouse parent personIds
+const connectorParents = ref(new Map<string, string[]>());
 
 const nodeTypes = {
   person: markRaw(PersonNode),
@@ -57,36 +59,33 @@ const nodeTypes = {
 // --- Relationship maps ---
 
 function buildMaps(edges: any[]) {
-  const connectorParents = new Map<string, string[]>();
+  const cp = new Map<string, string[]>(); // connector → spouse parents
   const p2c = new Map<string, string[]>();
   const cc = new Map<string, string[]>();
 
   // Pass 1: connector → its parent persons (from spouse edges)
   for (const e of edges) {
     if (e.type === 'spouse') {
-      if (!connectorParents.has(e.target)) connectorParents.set(e.target, []);
-      connectorParents.get(e.target)!.push(e.source);
+      if (!cp.has(e.target)) cp.set(e.target, []);
+      cp.get(e.target)!.push(e.source);
     }
   }
 
   // Pass 2: person → children, connector → children
   for (const e of edges) {
     if (e.type !== 'parentChild') continue;
-
-    // connector → child
     if (e.source.startsWith('connector-')) {
       if (!cc.has(e.source)) cc.set(e.source, []);
       if (!cc.get(e.source)!.includes(e.target)) cc.get(e.source)!.push(e.target);
     }
-
-    // person(s) → child
-    const parents = connectorParents.get(e.source) ?? [e.source];
+    const parents = cp.get(e.source) ?? [e.source];
     for (const parentId of parents) {
       if (!p2c.has(parentId)) p2c.set(parentId, []);
       if (!p2c.get(parentId)!.includes(e.target)) p2c.get(parentId)!.push(e.target);
     }
   }
 
+  connectorParents.value = cp;
   parentToChildren.value = p2c;
   connectorChildren.value = cc;
 }
@@ -123,7 +122,14 @@ const hiddenPersonIds = computed<Set<string>>(() => {
 
 const hiddenConnectorIds = computed<Set<string>>(() => {
   const hidden = new Set<string>();
-  for (const [connId, children] of connectorChildren.value) {
+  for (const [connId, spouseIds] of connectorParents.value) {
+    // Hide connector if any spouse-parent is hidden
+    if (spouseIds.some(s => hiddenPersonIds.value.has(s))) {
+      hidden.add(connId);
+      continue;
+    }
+    // Also hide if connector has children and all of them are hidden
+    const children = connectorChildren.value.get(connId) ?? [];
     if (children.length > 0 && children.every(c => hiddenPersonIds.value.has(c))) {
       hidden.add(connId);
     }

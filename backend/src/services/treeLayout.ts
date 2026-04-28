@@ -5,8 +5,8 @@ const NODE_WIDTH = 230;
 const NODE_HEIGHT = 120;
 const CONNECTOR_WIDTH = 30;
 const CONNECTOR_HEIGHT = 30;
-// Gap between spouse bottom edge and connector top edge
-const CONNECTOR_BELOW_GAP = 18;
+// Horizontal gap between spouse node edge and connector edge
+const SPOUSE_CONN_GAP = 10;
 
 export interface TreeNode {
   id: string;
@@ -25,7 +25,7 @@ export interface TreeEdge {
 export function buildTree(persons: Person[], relationships: Relationship[]): { nodes: TreeNode[]; edges: TreeEdge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 30, ranksep: 100, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 80, marginx: 40, marginy: 40 });
 
   const nodes: TreeNode[] = [];
   const edges: TreeEdge[] = [];
@@ -54,51 +54,113 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     }
   }
 
+  // Build child→parents map to deduplicate edges and pick correct connector
+  const childParents = new Map<string, string[]>();
   for (const rel of parentChildRels) {
-    const spouseRel = spouseRels.find(s =>
-      s.personAId === rel.personAId || s.personBId === rel.personAId
-    );
-    const sourceId = spouseRel
-      ? connectorMap.get([spouseRel.personAId, spouseRel.personBId].sort().join('-')) ?? rel.personAId
-      : rel.personAId;
-
-    if (sourceId !== rel.personAId) {
-      g.setEdge(sourceId, rel.personBId);
-    } else {
-      g.setEdge(rel.personAId, rel.personBId);
+    if (!childParents.has(rel.personBId)) childParents.set(rel.personBId, []);
+    if (!childParents.get(rel.personBId)!.includes(rel.personAId)) {
+      childParents.get(rel.personBId)!.push(rel.personAId);
     }
-    edges.push({ id: `pc-${rel.id}`, source: sourceId, target: rel.personBId, type: 'parentChild' });
+  }
+
+  const addedEdges = new Set<string>();
+  for (const [childId, parentIds] of childParents) {
+    let sourceId: string;
+    if (parentIds.length >= 2) {
+      const key = [...parentIds].sort().join('-');
+      sourceId = connectorMap.get(key) ?? parentIds[0];
+    } else {
+      const parentId = parentIds[0];
+      const spouseRel = spouseRels.find(s => s.personAId === parentId || s.personBId === parentId);
+      const connKey = spouseRel ? [spouseRel.personAId, spouseRel.personBId].sort().join('-') : null;
+      sourceId = (connKey && connectorMap.get(connKey)) ?? parentId;
+    }
+    const edgeKey = `${sourceId}->${childId}`;
+    if (!addedEdges.has(edgeKey)) {
+      addedEdges.add(edgeKey);
+      g.setEdge(sourceId, childId);
+      edges.push({ id: `pc-${sourceId}-${childId}`, source: sourceId, target: childId, type: 'parentChild' });
+    }
   }
 
   dagre.layout(g);
 
+  // Compute generation from relationship graph (roots = persons with no parents → gen 1)
+  const personChildrenMap = new Map<string, string[]>();
+  const personParentsMap = new Map<string, string[]>();
+  for (const rel of parentChildRels) {
+    if (!personChildrenMap.has(rel.personAId)) personChildrenMap.set(rel.personAId, []);
+    personChildrenMap.get(rel.personAId)!.push(rel.personBId);
+    if (!personParentsMap.has(rel.personBId)) personParentsMap.set(rel.personBId, []);
+    personParentsMap.get(rel.personBId)!.push(rel.personAId);
+  }
+  const computedGen = new Map<string, number>();
+  const genQueue: string[] = [];
+  for (const p of persons) {
+    if ((personParentsMap.get(p.id)?.length ?? 0) === 0) {
+      computedGen.set(p.id, 1);
+      genQueue.push(p.id);
+    }
+  }
+  while (genQueue.length > 0) {
+    const id = genQueue.shift()!;
+    const gen = computedGen.get(id)!;
+    for (const childId of personChildrenMap.get(id) ?? []) {
+      if ((computedGen.get(childId) ?? 0) < gen + 1) {
+        computedGen.set(childId, gen + 1);
+        genQueue.push(childId);
+      }
+    }
+  }
+  for (const p of persons) {
+    if (!computedGen.has(p.id)) computedGen.set(p.id, 1);
+  }
+
+  // Compute person positions from dagre, then adjust spouse pairs to be adjacent
+  const personPositions = new Map<string, { x: number; y: number }>();
   for (const p of persons) {
     const node = g.node(p.id);
     if (!node) continue;
-    nodes.push({
-      id: p.id,
-      type: 'person',
-      position: { x: node.x - NODE_WIDTH / 2, y: node.y - NODE_HEIGHT / 2 },
-      data: p,
-    });
+    personPositions.set(p.id, { x: node.x - NODE_WIDTH / 2, y: node.y - NODE_HEIGHT / 2 });
   }
 
-  // Place connector: center X between spouses, just below the spouse row
+  const adjustedPersons = new Set<string>();
   for (const [connId, [pA, pB]] of connectorPersons) {
-    const node = g.node(connId);
-    if (!node) continue;
+    const connNode = g.node(connId);
+    if (!connNode) continue;
     const nA = g.node(pA);
     const nB = g.node(pB);
-    // Center connector horizontally between the two spouses
-    const cx = nA && nB ? (nA.x + nB.x) / 2 : node.x;
-    // Place connector just below the couple row (not at dagre's rank below)
-    const spouseCenterY = nA ? nA.y : (nB ? nB.y : node.y);
-    const connectorTopY = spouseCenterY + NODE_HEIGHT / 2 + CONNECTOR_BELOW_GAP;
+
+    // Connector center X = midpoint between spouses (from dagre)
+    const cx = nA && nB ? (nA.x + nB.x) / 2 : connNode.x;
+
     nodes.push({
       id: connId,
       type: 'spouseConnector',
-      position: { x: cx - CONNECTOR_WIDTH / 2, y: connectorTopY },
+      position: { x: cx - CONNECTOR_WIDTH / 2, y: connNode.y - CONNECTOR_HEIGHT / 2 },
       data: { label: '' },
+    });
+
+    // Move spouses to sit side-by-side around the connector (only if neither already adjusted)
+    if (nA && nB && !adjustedPersons.has(pA) && !adjustedPersons.has(pB)) {
+      adjustedPersons.add(pA);
+      adjustedPersons.add(pB);
+      const [leftId, rightId] = nA.x <= nB.x ? [pA, pB] : [pB, pA];
+      const leftY = (nA.x <= nB.x ? nA : nB).y - NODE_HEIGHT / 2;
+      const rightY = (nA.x <= nB.x ? nB : nA).y - NODE_HEIGHT / 2;
+      personPositions.set(leftId, { x: cx - NODE_WIDTH - CONNECTOR_WIDTH / 2 - SPOUSE_CONN_GAP, y: leftY });
+      personPositions.set(rightId, { x: cx + CONNECTOR_WIDTH / 2 + SPOUSE_CONN_GAP, y: rightY });
+    }
+  }
+
+  for (const p of persons) {
+    const pos = personPositions.get(p.id);
+    if (!pos) continue;
+    nodes.push({
+      id: p.id,
+      type: 'person',
+      position: pos,
+      data: { ...p, generation: computedGen.get(p.id) ?? p.generation },
     });
   }
 

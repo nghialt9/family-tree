@@ -133,12 +133,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { personsApi, relationshipsApi } from '../api';
 import { useAuthStore } from '../stores/auth';
 import AvatarCropper from './AvatarCropper.vue';
 
 const auth = useAuthStore();
-const isAdmin = auth.isAdmin;
+const { isAdmin } = storeToRefs(auth);
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
@@ -146,7 +147,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
 const defaultForm = () => ({
   fullName: '', nickname: '', gender: 'male' as 'male' | 'female',
   birthDate: '', deathDate: '', phone: '', address: '', bio: '',
-  generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'admin',
+  generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'editor' | 'admin',
   grantPassword: '',
   fatherId: '', motherId: '', spouseId: '',
 });
@@ -226,6 +227,15 @@ watch(() => props.editPerson, async (p) => {
     form.value = defaultForm();
   }
 }, { immediate: true });
+
+// Auto-calculate generation from selected parents (new persons only)
+watch([() => form.value.fatherId, () => form.value.motherId], ([fId, mId]) => {
+  if (props.editPerson) return;
+  const father = allPersons.value.find(p => p.id === fId);
+  const mother = allPersons.value.find(p => p.id === mId);
+  const maxGen = Math.max(father?.generation ?? 0, mother?.generation ?? 0);
+  form.value.generation = maxGen > 0 ? maxGen + 1 : 1;
+});
 
 function handleFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];

@@ -68,6 +68,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { personsApi } from '../api';
 import { useAuthStore } from '../stores/auth';
 
@@ -80,8 +81,7 @@ const emit = defineEmits<{
 }>();
 
 const auth = useAuthStore();
-const isAdmin = auth.isAdmin;
-const isEditor = auth.isEditor;
+const { isAdmin, isEditor } = storeToRefs(auth);
 const person = ref<any>(null);
 const relatives = ref<any>(null);
 const loading = ref(false);
