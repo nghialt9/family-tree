@@ -6,10 +6,15 @@ import { prisma } from '../lib/prisma';
 const router = Router();
 
 router.post('/check-phone', async (req, res) => {
-  const { phone } = req.body as { phone: string };
-  const token = await prisma.accessToken.findUnique({ where: { phone } });
-  if (!token) { res.status(404).json({ error: 'Phone not found' }); return; }
-  res.json({ role: token.role });
+  try {
+    const { phone } = req.body as { phone: string };
+    const token = await prisma.accessToken.findUnique({ where: { phone } });
+    if (!token) { res.status(404).json({ error: 'Phone not found' }); return; }
+    res.json({ role: token.role });
+  } catch (err) {
+    console.error('Check-phone error:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ.' });
+  }
 });
 
 router.post('/login', async (req, res) => {

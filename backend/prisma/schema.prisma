@@ -42,6 +42,9 @@ model Relationship {
   personA Person @relation("PersonA", fields: [personAId], references: [id], onDelete: Cascade)
   personB Person @relation("PersonB", fields: [personBId], references: [id], onDelete: Cascade)
 
+  @@index([personAId])
+  @@index([personBId])
+  @@index([type])
   @@map("relationships")
 }
 

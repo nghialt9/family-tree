@@ -195,9 +195,12 @@ watch(() => props.editPerson, async (p) => {
       phone: p.phone || '', address: p.address || '', bio: p.bio || '',
       generation: p.generation,
     };
-    try {
-      const rRes = await personsApi.getRelatives(p.id);
-      const rels = rRes.data;
+    const [rResult, aResult] = await Promise.allSettled([
+      personsApi.getRelatives(p.id),
+      isAdmin.value ? personsApi.getAccess(p.id) : Promise.resolve(null),
+    ]);
+    if (rResult.status === 'fulfilled' && rResult.value) {
+      const rels = rResult.value.data;
       const father = rels.parents.find((x: any) => x.gender === 'male');
       const mother = rels.parents.find((x: any) => x.gender === 'female');
       const spouse = rels.spouses[0];
@@ -214,15 +217,11 @@ watch(() => props.editPerson, async (p) => {
         motherId: mother?.id || '',
         spouseId: spouse?.id || '',
       };
-    } catch { /* ignore */ }
-    // Pre-fill access grant status from existing AccessToken
-    try {
-      const aRes = await personsApi.getAccess(p.id);
-      if (aRes.data.hasAccess) {
-        form.value.grantAccess = true;
-        form.value.grantRole = aRes.data.role;
-      }
-    } catch { /* ignore — non-admin or no token */ }
+    }
+    if (aResult.status === 'fulfilled' && aResult.value?.data?.hasAccess) {
+      form.value.grantAccess = true;
+      form.value.grantRole = aResult.value.data.role;
+    }
   } else {
     form.value = defaultForm();
   }
@@ -293,7 +292,7 @@ async function handleSubmit() {
       bio: form.value.bio || undefined,
       grantAccess: form.value.grantAccess,
       grantRole: form.value.grantAccess ? form.value.grantRole : undefined,
-      grantPassword: (form.value.grantAccess && form.value.grantRole === 'admin') ? form.value.grantPassword : undefined,
+      grantPassword: (form.value.grantAccess && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor')) ? form.value.grantPassword : undefined,
     };
     let savedId: string;
     if (props.editPerson) {

@@ -69,8 +69,12 @@ router.put('/:id', requireEditor, async (req, res) => {
 });
 
 router.delete('/:id', requireAdmin, async (req, res) => {
-  await prisma.person.delete({ where: { id: req.params.id } });
-  res.status(204).send();
+  try {
+    await prisma.person.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (e: any) {
+    res.status(404).json({ error: e.message });
+  }
 });
 
 router.post('/:id/avatar', requireEditor, upload.single('avatar'), async (req, res) => {

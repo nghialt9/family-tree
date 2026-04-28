@@ -59,6 +59,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import FamilyTreeCanvas from '../components/FamilyTreeCanvas.vue';
@@ -68,8 +69,7 @@ import { statsApi } from '../api';
 
 const auth = useAuthStore();
 const router = useRouter();
-const isAdmin = auth.isAdmin;
-const isEditor = auth.isEditor;
+const { isEditor } = storeToRefs(auth);
 
 const selectedPersonId = ref<string | null>(null);
 const showForm = ref(false);
