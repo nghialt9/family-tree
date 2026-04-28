@@ -74,17 +74,19 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-.login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0d1117; }
-.login-card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 40px; width: 360px; }
-h1 { font-size: 1.5rem; margin-bottom: 6px; }
-.subtitle { color: #8b949e; margin-bottom: 24px; font-size: 0.9rem; }
+.login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f6f8fa; }
+.login-card { background: #ffffff; border: 1px solid #d0d7de; border-radius: 12px; padding: 40px; width: 360px; box-shadow: 0 8px 24px rgba(140,149,159,0.15); }
+h1 { font-size: 1.5rem; margin-bottom: 6px; color: #24292f; }
+.subtitle { color: #57606a; margin-bottom: 24px; font-size: 0.9rem; }
 .field { margin-bottom: 16px; }
-label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #8b949e; }
-input { width: 100%; padding: 10px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 1rem; }
-input:focus { outline: none; border-color: #58a6ff; }
-button[type=submit] { width: 100%; padding: 12px; background: #238636; border: none; border-radius: 6px; color: #fff; font-size: 1rem; cursor: pointer; margin-top: 8px; }
-button[type=submit]:hover { background: #2ea043; }
+label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #57606a; font-weight: 500; }
+input { width: 100%; padding: 10px 12px; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; color: #24292f; font-size: 1rem; box-sizing: border-box; }
+input:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
+input:disabled { opacity: 0.6; }
+button[type=submit] { width: 100%; padding: 12px; background: #2da44e; border: none; border-radius: 6px; color: #fff; font-size: 1rem; font-weight: 500; cursor: pointer; margin-top: 8px; }
+button[type=submit]:hover { background: #2c974b; }
 button[type=submit]:disabled { opacity: 0.6; cursor: not-allowed; }
-.back { width: 100%; padding: 8px; background: transparent; border: 1px solid #30363d; border-radius: 6px; color: #8b949e; cursor: pointer; margin-top: 8px; }
-.error { color: #f85149; font-size: 0.85rem; margin-bottom: 8px; }
+.back { width: 100%; padding: 8px; background: transparent; border: 1px solid #d0d7de; border-radius: 6px; color: #57606a; cursor: pointer; margin-top: 8px; font-size: 0.9rem; }
+.back:hover { background: #f6f8fa; }
+.error { color: #cf222e; font-size: 0.85rem; margin-bottom: 8px; }
 </style>

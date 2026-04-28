@@ -37,11 +37,11 @@ router.get('/:id/relatives', requireViewer, async (req, res) => {
     prisma.relationship.findMany({ where: { personAId: id }, include: { personB: true } }),
     prisma.relationship.findMany({ where: { personBId: id }, include: { personA: true } }),
   ]);
-  const parents = asB.filter(r => r.type === 'parent_child').map(r => r.personA);
+  const parents = asB.filter(r => r.type === 'parent_child').map(r => ({ ...r.personA, relationshipId: r.id }));
   const children = asA.filter(r => r.type === 'parent_child').map(r => r.personB);
   const spouses = [
-    ...asA.filter(r => r.type === 'spouse').map(r => r.personB),
-    ...asB.filter(r => r.type === 'spouse').map(r => r.personA),
+    ...asA.filter(r => r.type === 'spouse').map(r => ({ ...r.personB, relationshipId: r.id })),
+    ...asB.filter(r => r.type === 'spouse').map(r => ({ ...r.personA, relationshipId: r.id })),
   ];
   res.json({ parents, children, spouses });
 });

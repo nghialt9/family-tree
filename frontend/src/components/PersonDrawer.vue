@@ -108,29 +108,33 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('vi-VN');
 </script>
 
 <style scoped>
-.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; }
-.drawer { position: fixed; right: 0; top: 0; height: 100vh; width: 380px; background: #161b22; border-left: 1px solid #30363d; overflow-y: auto; padding: 24px; }
-.close-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #8b949e; font-size: 18px; cursor: pointer; }
+.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 100; }
+.drawer { position: fixed; right: 0; top: 0; height: 100vh; width: 380px; background: #ffffff; border-left: 1px solid #d0d7de; overflow-y: auto; padding: 24px; box-shadow: -4px 0 16px rgba(140,149,159,0.15); }
+.close-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #57606a; font-size: 18px; cursor: pointer; }
+.close-btn:hover { color: #24292f; }
 .avatar-section { text-align: center; margin-bottom: 20px; padding-top: 16px; }
-.avatar-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; }
+.avatar-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid #d0d7de; }
 .avatar-placeholder { font-size: 64px; margin-bottom: 10px; }
-h2 { font-size: 1.2rem; color: #e94560; }
-.nickname { color: #8b949e; font-style: italic; display: block; margin-bottom: 8px; }
+h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
+.nickname { color: #57606a; font-style: italic; display: block; margin-bottom: 8px; }
 .badges { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
-.gen-badge { background: #0f3460; color: #58a6ff; border-radius: 10px; padding: 2px 10px; font-size: 11px; }
-.deceased-badge { background: #21262d; color: #f85149; border-radius: 10px; padding: 2px 10px; font-size: 11px; }
+.gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+.deceased-badge { background: #ffebe9; color: #cf222e; border-radius: 10px; padding: 2px 10px; font-size: 11px; }
 .info-section { margin: 16px 0; }
-.info-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; font-size: 13px; }
+.info-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; font-size: 13px; color: #24292f; }
 .icon { font-size: 18px; }
-.info-label { font-size: 10px; color: #8b949e; }
-.bio-section { background: #0d1117; border-radius: 8px; padding: 12px; margin: 16px 0; }
-.bio-section h3, .relatives-section h3 { font-size: 12px; color: #8b949e; margin: 16px 0 6px; }
-.bio-section p { font-size: 13px; color: #8b949e; line-height: 1.6; }
-.rel-btn { background: #21262d; border: 1px solid #30363d; color: #58a6ff; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin: 0 4px 4px 0; }
+.info-label { font-size: 10px; color: #57606a; margin-bottom: 1px; }
+.bio-section { background: #f6f8fa; border-radius: 8px; padding: 12px; margin: 16px 0; border: 1px solid #d0d7de; }
+.bio-section h3, .relatives-section h3 { font-size: 12px; color: #57606a; margin: 16px 0 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.bio-section p { font-size: 13px; color: #24292f; line-height: 1.6; }
+.rel-btn { background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin: 0 4px 4px 0; }
+.rel-btn:hover { background: #ddf4ff; border-color: #54aeff; }
 .admin-actions { margin-top: 24px; display: flex; gap: 10px; }
-.btn-edit { flex: 1; padding: 10px; background: #21262d; border: 1px solid #30363d; color: #e6edf3; border-radius: 6px; cursor: pointer; }
-.btn-delete { flex: 1; padding: 10px; background: #21262d; border: 1px solid #f85149; color: #f85149; border-radius: 6px; cursor: pointer; }
-.loading { text-align: center; padding: 40px; color: #8b949e; }
+.btn-edit { flex: 1; padding: 10px; background: #f6f8fa; border: 1px solid #d0d7de; color: #24292f; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.btn-edit:hover { background: #eaeef2; }
+.btn-delete { flex: 1; padding: 10px; background: #fff0ee; border: 1px solid #ffcecb; color: #cf222e; border-radius: 6px; cursor: pointer; font-weight: 500; }
+.btn-delete:hover { background: #ffebe9; }
+.loading { text-align: center; padding: 40px; color: #57606a; }
 .drawer-enter-active, .drawer-leave-active { transition: transform 0.3s ease; }
 .drawer-enter-from, .drawer-leave-to { transform: translateX(100%); }
 </style>

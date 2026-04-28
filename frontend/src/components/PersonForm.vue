@@ -44,6 +44,35 @@
           <textarea v-model="form.bio" rows="3" />
         </div>
 
+        <div class="section-title full-width">Quan hệ gia đình</div>
+        <div class="field">
+          <label>Cha</label>
+          <select v-model="form.fatherId">
+            <option value="">-- Không chọn --</option>
+            <option v-for="p in malePersons" :key="p.id" :value="p.id">
+              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · Gen {{ p.generation }}
+            </option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Mẹ</label>
+          <select v-model="form.motherId">
+            <option value="">-- Không chọn --</option>
+            <option v-for="p in femalePersons" :key="p.id" :value="p.id">
+              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · Gen {{ p.generation }}
+            </option>
+          </select>
+        </div>
+        <div class="field full-width">
+          <label>Vợ / Chồng</label>
+          <select v-model="form.spouseId">
+            <option value="">-- Không chọn --</option>
+            <option v-for="p in otherPersons" :key="p.id" :value="p.id">
+              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · {{ p.gender === 'male' ? 'Nam' : 'Nữ' }} · Gen {{ p.generation }}
+            </option>
+          </select>
+        </div>
+
         <div v-if="form.phone" class="field full-width access-grant">
           <label class="checkbox-label">
             <input type="checkbox" v-model="form.grantAccess" />
@@ -76,8 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { personsApi } from '../api';
+import { ref, computed, watch, onMounted } from 'vue';
+import { personsApi, relationshipsApi } from '../api';
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
@@ -87,13 +116,35 @@ const defaultForm = () => ({
   birthDate: '', deathDate: '', phone: '', address: '', bio: '',
   generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'admin',
   grantPassword: '',
+  fatherId: '', motherId: '', spouseId: '',
 });
 
 const form = ref(defaultForm());
 const loading = ref(false);
 const error = ref('');
+const allPersons = ref<any[]>([]);
 
-watch(() => props.editPerson, (p) => {
+const origRelIds = ref({ fatherRelId: '', motherRelId: '', spouseRelId: '' });
+const origPersonIds = ref({ fatherId: '', motherId: '', spouseId: '' });
+
+const malePersons = computed(() =>
+  allPersons.value.filter(p => p.id !== props.editPerson?.id && p.gender === 'male')
+);
+const femalePersons = computed(() =>
+  allPersons.value.filter(p => p.id !== props.editPerson?.id && p.gender === 'female')
+);
+const otherPersons = computed(() =>
+  allPersons.value.filter(p => p.id !== props.editPerson?.id)
+);
+
+onMounted(async () => {
+  const res = await personsApi.list();
+  allPersons.value = res.data;
+});
+
+watch(() => props.editPerson, async (p) => {
+  origRelIds.value = { fatherRelId: '', motherRelId: '', spouseRelId: '' };
+  origPersonIds.value = { fatherId: '', motherId: '', spouseId: '' };
   if (p) {
     form.value = {
       ...defaultForm(),
@@ -103,10 +154,45 @@ watch(() => props.editPerson, (p) => {
       phone: p.phone || '', address: p.address || '', bio: p.bio || '',
       generation: p.generation,
     };
+    try {
+      const rRes = await personsApi.getRelatives(p.id);
+      const rels = rRes.data;
+      const father = rels.parents.find((x: any) => x.gender === 'male');
+      const mother = rels.parents.find((x: any) => x.gender === 'female');
+      const spouse = rels.spouses[0];
+      form.value.fatherId = father?.id || '';
+      form.value.motherId = mother?.id || '';
+      form.value.spouseId = spouse?.id || '';
+      origRelIds.value = {
+        fatherRelId: father?.relationshipId || '',
+        motherRelId: mother?.relationshipId || '',
+        spouseRelId: spouse?.relationshipId || '',
+      };
+      origPersonIds.value = {
+        fatherId: father?.id || '',
+        motherId: mother?.id || '',
+        spouseId: spouse?.id || '',
+      };
+    } catch { /* ignore */ }
   } else {
     form.value = defaultForm();
   }
 }, { immediate: true });
+
+async function handleRelationships(personId: string) {
+  if (form.value.fatherId !== origPersonIds.value.fatherId) {
+    if (origRelIds.value.fatherRelId) await relationshipsApi.delete(origRelIds.value.fatherRelId);
+    if (form.value.fatherId) await relationshipsApi.create({ personAId: form.value.fatherId, personBId: personId, type: 'parent_child' });
+  }
+  if (form.value.motherId !== origPersonIds.value.motherId) {
+    if (origRelIds.value.motherRelId) await relationshipsApi.delete(origRelIds.value.motherRelId);
+    if (form.value.motherId) await relationshipsApi.create({ personAId: form.value.motherId, personBId: personId, type: 'parent_child' });
+  }
+  if (form.value.spouseId !== origPersonIds.value.spouseId) {
+    if (origRelIds.value.spouseRelId) await relationshipsApi.delete(origRelIds.value.spouseRelId);
+    if (form.value.spouseId) await relationshipsApi.create({ personAId: personId, personBId: form.value.spouseId, type: 'spouse' });
+  }
+}
 
 async function handleSubmit() {
   loading.value = true; error.value = '';
@@ -123,11 +209,15 @@ async function handleSubmit() {
       grantRole: form.value.grantAccess ? form.value.grantRole : undefined,
       grantPassword: (form.value.grantAccess && form.value.grantRole === 'admin') ? form.value.grantPassword : undefined,
     };
+    let savedId: string;
     if (props.editPerson) {
-      await personsApi.update(props.editPerson.id, payload);
+      const res = await personsApi.update(props.editPerson.id, payload);
+      savedId = res.data.id;
     } else {
-      await personsApi.create(payload);
+      const res = await personsApi.create(payload);
+      savedId = res.data.id;
     }
+    await handleRelationships(savedId);
     emit('saved');
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Lỗi khi lưu.';
@@ -138,23 +228,26 @@ async function handleSubmit() {
 </script>
 
 <style scoped>
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
-.modal { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
-h2 { margin-bottom: 20px; font-size: 1.1rem; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: #ffffff; border: 1px solid #d0d7de; border-radius: 12px; padding: 28px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(140,149,159,0.2); }
+h2 { margin-bottom: 20px; font-size: 1.1rem; color: #24292f; font-weight: 700; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .full-width { grid-column: 1 / -1; }
-label { font-size: 12px; color: #8b949e; }
-input, select, textarea { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 10px; color: #e6edf3; font-size: 13px; width: 100%; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: #58a6ff; }
+.section-title { font-size: 11px; font-weight: 600; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 8px; border-top: 1px solid #d0d7de; margin-top: 4px; }
+label { font-size: 12px; color: #57606a; font-weight: 500; }
+input, select, textarea { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 8px 10px; color: #24292f; font-size: 13px; width: 100%; box-sizing: border-box; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
 textarea { resize: vertical; }
-.access-grant { background: rgba(88,166,255,0.06); border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
-.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #e6edf3; cursor: pointer; }
+.access-grant { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 8px; padding: 12px; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #24292f; cursor: pointer; font-weight: 500; }
 .grant-options { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
 .buttons { display: flex; gap: 10px; justify-content: flex-end; }
-.buttons button { padding: 10px 20px; border-radius: 6px; cursor: pointer; border: 1px solid #30363d; font-size: 13px; }
-.buttons button[type=button] { background: #21262d; color: #e6edf3; }
-.buttons button[type=submit] { background: #238636; border-color: #238636; color: #fff; }
+.buttons button { padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.buttons button[type=button] { background: #f6f8fa; border: 1px solid #d0d7de; color: #24292f; }
+.buttons button[type=button]:hover { background: #eaeef2; }
+.buttons button[type=submit] { background: #2da44e; border: 1px solid #2da44e; color: #fff; }
+.buttons button[type=submit]:hover { background: #2c974b; }
 .buttons button:disabled { opacity: 0.6; cursor: not-allowed; }
-.error { color: #f85149; font-size: 12px; }
+.error { color: #cf222e; font-size: 12px; }
 </style>

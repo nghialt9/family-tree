@@ -7,9 +7,9 @@
       fit-view-on-init
       @node-click="onNodeClick"
     >
-      <Background pattern-color="#21262d" :gap="20" />
+      <Background pattern-color="#d0d7de" :gap="20" />
       <Controls />
-      <MiniMap node-color="#161b22" mask-color="rgba(0,0,0,0.6)" />
+      <MiniMap node-color="#ffffff" mask-color="rgba(246,248,250,0.8)" />
     </VueFlow>
 
     <div v-if="loading" class="overlay">Đang tải gia phả...</div>
@@ -55,7 +55,6 @@ async function loadTree() {
 }
 
 onMounted(loadTree);
-
 defineExpose({ reload: loadTree });
 
 function onNodeClick(event: NodeMouseEvent) {
@@ -64,7 +63,7 @@ function onNodeClick(event: NodeMouseEvent) {
 </script>
 
 <style scoped>
-.canvas-wrap { width: 100%; height: calc(100vh - 52px); position: relative; }
-.overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #161b22; padding: 20px 32px; border-radius: 8px; font-size: 1rem; }
-.error-msg { color: #f85149; border: 1px solid #f85149; }
+.canvas-wrap { width: 100%; height: calc(100vh - 52px); position: relative; background: #f6f8fa; }
+.overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; border: 1px solid #d0d7de; padding: 20px 32px; border-radius: 8px; font-size: 1rem; color: #24292f; box-shadow: 0 4px 12px rgba(140,149,159,0.15); }
+.error-msg { color: #cf222e; border-color: #ffcecb; background: #ffebe9; }
 </style>

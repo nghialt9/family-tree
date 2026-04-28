@@ -35,17 +35,17 @@ function formatDate(d: string) {
 </script>
 
 <style scoped>
-.person-node { background: #161b22; border: 2px solid #30363d; border-radius: 10px; padding: 12px; width: 220px; cursor: default; transition: border-color 0.2s; }
-.person-node:hover { border-color: #58a6ff; }
-.person-node.deceased { border-color: #6e7681; opacity: 0.75; }
+.person-node { background: #ffffff; border: 2px solid #d0d7de; border-radius: 10px; padding: 12px; width: 220px; cursor: default; transition: border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(140,149,159,0.1); }
+.person-node:hover { border-color: #0969da; box-shadow: 0 4px 12px rgba(9,105,218,0.15); }
+.person-node.deceased { border-color: #d0d7de; opacity: 0.6; }
 .avatar { text-align: center; font-size: 36px; margin-bottom: 8px; }
 .avatar img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
-.gen-badge { background: #0f3460; color: #58a6ff; border-radius: 10px; padding: 1px 8px; font-size: 10px; display: inline-block; margin-bottom: 4px; }
-.name { font-weight: bold; font-size: 13px; color: #e94560; }
-.nickname { color: #8b949e; font-size: 11px; font-style: italic; }
-.detail { color: #8b949e; font-size: 11px; margin-top: 2px; }
-.deceased-tag { color: #f85149; }
+.gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 1px 8px; font-size: 10px; display: inline-block; margin-bottom: 4px; font-weight: 600; }
+.name { font-weight: 700; font-size: 13px; color: #24292f; }
+.nickname { color: #57606a; font-size: 11px; font-style: italic; }
+.detail { color: #57606a; font-size: 11px; margin-top: 2px; }
+.deceased-tag { color: #cf222e; }
 .actions { margin-top: 8px; text-align: center; }
-.btn-detail { background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer; }
-.btn-detail:hover { background: #30363d; color: #e6edf3; }
+.btn-detail { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer; }
+.btn-detail:hover { background: #eaeef2; color: #24292f; }
 </style>
