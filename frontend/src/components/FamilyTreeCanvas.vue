@@ -11,7 +11,7 @@
     >
       <Background pattern-color="#d0d7de" :gap="20" />
       <Controls />
-      <MiniMap node-color="#ffffff" mask-color="rgba(246,248,250,0.8)" />
+      <MiniMap node-color="#0969da" mask-color="rgba(200,220,240,0.55)" />
     </VueFlow>
 
     <div v-if="loading" class="overlay">Đang tải gia phả...</div>
@@ -34,7 +34,7 @@ import { treeApi } from '../api';
 const props = defineProps<{ focusPersonId?: string | null }>();
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
-const { fitView, onNodesInitialized, viewport } = useVueFlow('family-tree');
+const { fitView, setCenter, onNodesInitialized, viewport } = useVueFlow('family-tree');
 
 const rawNodes = ref<any[]>([]);
 const rawEdges = ref<any[]>([]);
@@ -183,16 +183,20 @@ onNodesInitialized(() => {
   if (fitPending) {
     fitPending = false;
     nextTick(() => {
-      if (props.focusPersonId) {
-        // Center on the logged-in user's own node
-        fitView({ nodes: [{ id: props.focusPersonId }], padding: 0.6, duration: 400 });
-      } else {
-        // Fall back to root generation
-        const rootIds = rawNodes.value
-          .filter(n => n.type === 'person' && n.data?.generation === 1)
-          .map(n => ({ id: n.id }));
-        fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
+      const focusId = props.focusPersonId;
+      if (focusId) {
+        const target = rawNodes.value.find(n => n.id === focusId);
+        if (target) {
+          // Use setCenter with node's actual position (top-left + half dimensions)
+          setCenter(target.position.x + 115, target.position.y + 60, { zoom: 1.2, duration: 400 });
+          return;
+        }
       }
+      // Fall back to root generation
+      const rootIds = rawNodes.value
+        .filter(n => n.type === 'person' && n.data?.generation === 1)
+        .map(n => ({ id: n.id }));
+      fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
     });
   }
 });
@@ -237,6 +241,12 @@ function onNodeClick(event: NodeMouseEvent) {
   box-shadow: 0 4px 12px rgba(140,149,159,0.15);
 }
 .error-msg { color: #cf222e; border-color: #ffcecb; background: #ffebe9; }
+:deep(.vue-flow__minimap) {
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(140,149,159,0.2);
+}
 .zoom-indicator {
   position: absolute; bottom: 52px; right: 12px;
   background: rgba(255,255,255,0.9); border: 1px solid #d0d7de;

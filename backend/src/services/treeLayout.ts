@@ -5,6 +5,10 @@ const NODE_WIDTH = 230;
 const NODE_HEIGHT = 120;
 const CONNECTOR_WIDTH = 30;
 const CONNECTOR_HEIGHT = 30;
+// Gap between connector edge and spouse node edge after repositioning
+const COUPLE_GAP = 10;
+// Gap between spouse bottom edge and connector top edge
+const CONNECTOR_BELOW_GAP = 18;
 
 export interface TreeNode {
   id: string;
@@ -23,7 +27,7 @@ export interface TreeEdge {
 export function buildTree(persons: Person[], relationships: Relationship[]): { nodes: TreeNode[]; edges: TreeEdge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 120, marginx: 50, marginy: 50 });
+  g.setGraph({ rankdir: 'TB', nodesep: 30, ranksep: 100, marginx: 40, marginy: 40 });
 
   const nodes: TreeNode[] = [];
   const edges: TreeEdge[] = [];
@@ -70,9 +74,12 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
 
   dagre.layout(g);
 
+  // Build person nodes and track their index for post-processing
+  const personNodeIndex = new Map<string, number>();
   for (const p of persons) {
     const node = g.node(p.id);
     if (!node) continue;
+    personNodeIndex.set(p.id, nodes.length);
     nodes.push({
       id: p.id,
       type: 'person',
@@ -81,17 +88,37 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     });
   }
 
-  // Position connector centered between its two spouses horizontally
+  // Pull spouses tight around their connector and place connector just below them
   for (const [connId, [pA, pB]] of connectorPersons) {
     const node = g.node(connId);
     if (!node) continue;
     const nA = g.node(pA);
     const nB = g.node(pB);
+
+    // Connector center X = midpoint of the two spouses
     const cx = nA && nB ? (nA.x + nB.x) / 2 : node.x;
+
+    // Connector sits just below the spouse row
+    const spouseCenterY = nA ? nA.y : (nB ? nB.y : node.y);
+    const connectorTopY = spouseCenterY + NODE_HEIGHT / 2 + CONNECTOR_BELOW_GAP;
+    const connectorCenterY = connectorTopY + CONNECTOR_HEIGHT / 2;
+
+    // Pull spouses in so they sit right next to the connector
+    if (nA && nB) {
+      const idxA = personNodeIndex.get(pA);
+      const idxB = personNodeIndex.get(pB);
+      if (idxA !== undefined) {
+        nodes[idxA].position.x = cx - CONNECTOR_WIDTH / 2 - COUPLE_GAP - NODE_WIDTH / 2;
+      }
+      if (idxB !== undefined) {
+        nodes[idxB].position.x = cx + CONNECTOR_WIDTH / 2 + COUPLE_GAP + NODE_WIDTH / 2;
+      }
+    }
+
     nodes.push({
       id: connId,
       type: 'spouseConnector',
-      position: { x: cx - CONNECTOR_WIDTH / 2, y: node.y - CONNECTOR_HEIGHT / 2 },
+      position: { x: cx - CONNECTOR_WIDTH / 2, y: connectorCenterY - CONNECTOR_HEIGHT / 2 },
       data: { label: '' },
     });
   }
