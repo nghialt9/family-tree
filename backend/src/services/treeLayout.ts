@@ -3,8 +3,8 @@ import { Person, Relationship } from '@prisma/client';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 160;
-const CONNECTOR_WIDTH = 1;
-const CONNECTOR_HEIGHT = 1;
+const CONNECTOR_WIDTH = 30;
+const CONNECTOR_HEIGHT = 30;
 
 export interface TreeNode {
   id: string;
@@ -23,7 +23,7 @@ export interface TreeEdge {
 export function buildTree(persons: Person[], relationships: Relationship[]): { nodes: TreeNode[]; edges: TreeEdge[] } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 100 });
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 120, marginx: 50, marginy: 50 });
 
   const nodes: TreeNode[] = [];
   const edges: TreeEdge[] = [];
