@@ -24,8 +24,11 @@ router.post('/login', async (req, res) => {
     if (!valid) { res.status(401).json({ error: 'Invalid password' }); return; }
   }
 
+  const person = token.personId
+    ? await prisma.person.findUnique({ where: { id: token.personId }, select: { fullName: true } })
+    : null;
   const jwt = signToken({ id: token.id, phone: token.phone, role: token.role });
-  res.json({ token: jwt, role: token.role });
+  res.json({ token: jwt, role: token.role, personName: person?.fullName ?? null, phone: token.phone });
 });
 
 export { router as authRouter };

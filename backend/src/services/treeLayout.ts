@@ -36,12 +36,14 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
   const parentChildRels = relationships.filter(r => r.type === 'parent_child');
 
   const connectorMap = new Map<string, string>();
+  const connectorPersons = new Map<string, [string, string]>(); // connId → [pA, pB]
 
   for (const rel of spouseRels) {
     const key = [rel.personAId, rel.personBId].sort().join('-');
     if (!connectorMap.has(key)) {
       const connId = `connector-${key}`;
       connectorMap.set(key, connId);
+      connectorPersons.set(connId, [rel.personAId, rel.personBId]);
       g.setNode(connId, { width: CONNECTOR_WIDTH, height: CONNECTOR_HEIGHT });
       g.setEdge(rel.personAId, connId);
       g.setEdge(rel.personBId, connId);
@@ -79,13 +81,17 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     });
   }
 
-  for (const [, connId] of connectorMap) {
+  // Position connector centered between its two spouses horizontally
+  for (const [connId, [pA, pB]] of connectorPersons) {
     const node = g.node(connId);
     if (!node) continue;
+    const nA = g.node(pA);
+    const nB = g.node(pB);
+    const cx = nA && nB ? (nA.x + nB.x) / 2 : node.x;
     nodes.push({
       id: connId,
       type: 'spouseConnector',
-      position: { x: node.x - CONNECTOR_WIDTH / 2, y: node.y - CONNECTOR_HEIGHT / 2 },
+      position: { x: cx - CONNECTOR_WIDTH / 2, y: node.y - CONNECTOR_HEIGHT / 2 },
       data: { label: '' },
     });
   }

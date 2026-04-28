@@ -10,6 +10,9 @@
         <span class="stat online">🟢 {{ stats.onlineNow }} đang online</span>
       </div>
       <div class="toolbar-actions">
+        <span v-if="auth.personName || auth.userPhone" class="user-greeting">
+          👤 {{ auth.personName ?? auth.userPhone }}
+        </span>
         <button v-if="isAdmin" class="btn-add" @click="openAddForm">+ Thêm người</button>
         <button class="btn-logout" @click="handleLogout">Đăng xuất</button>
       </div>
@@ -111,7 +114,8 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 .stat { white-space: nowrap; }
 .stat-dot { color: #d0d7de; }
 .stat.online { color: #2da44e; }
-.toolbar-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.toolbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.user-greeting { font-size: 12px; color: #57606a; white-space: nowrap; }
 .btn-add { background: #2da44e; color: #fff; border: none; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
 .btn-add:hover { background: #2c974b; }
 .btn-logout { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; }

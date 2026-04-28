@@ -1,17 +1,18 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { requireViewer, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// IP → last-seen timestamp (in-memory, resets on restart)
+// tokenId → last-seen timestamp (in-memory, resets on restart)
 const onlineMap = new Map<string, number>();
 const ONLINE_WINDOW_MS = 5 * 60 * 1000;
 
 function pruneAndCount(): number {
   const cutoff = Date.now() - ONLINE_WINDOW_MS;
-  for (const [ip, ts] of onlineMap) {
-    if (ts < cutoff) onlineMap.delete(ip);
+  for (const [key, ts] of onlineMap) {
+    if (ts < cutoff) onlineMap.delete(key);
   }
   return onlineMap.size;
 }
@@ -24,9 +25,9 @@ router.get('/', async (_req, res) => {
 
 // POST /api/stats/ping — called by frontend on mount + every 60s
 // body: { newVisit: boolean }
-router.post('/ping', async (req, res) => {
-  const ip = req.ip ?? 'unknown';
-  onlineMap.set(ip, Date.now());
+router.post('/ping', requireViewer, async (req: AuthRequest, res) => {
+  const key = req.user!.id;
+  onlineMap.set(key, Date.now());
 
   const { newVisit } = req.body as { newVisit?: boolean };
   const stats = await prisma.siteStats.upsert({

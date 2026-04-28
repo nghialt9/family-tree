@@ -16,6 +16,7 @@
 
     <div v-if="loading" class="overlay">Đang tải gia phả...</div>
     <div v-if="error" class="overlay error-msg">{{ error }}</div>
+    <div class="zoom-indicator">{{ Math.round(viewport.zoom * 100) }}%</div>
   </div>
 </template>
 
@@ -32,7 +33,7 @@ import { treeApi } from '../api';
 
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
-const { fitView, onNodesInitialized } = useVueFlow('family-tree');
+const { fitView, onNodesInitialized, viewport } = useVueFlow('family-tree');
 
 const rawNodes = ref<any[]>([]);
 const rawEdges = ref<any[]>([]);
@@ -180,7 +181,13 @@ let fitPending = false;
 onNodesInitialized(() => {
   if (fitPending) {
     fitPending = false;
-    nextTick(() => fitView({ padding: 0.08, duration: 400 }));
+    nextTick(() => {
+      // Fit to root generation for a readable initial zoom
+      const rootIds = rawNodes.value
+        .filter(n => n.type === 'person' && n.data?.generation === 1)
+        .map(n => ({ id: n.id }));
+      fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
+    });
   }
 });
 
@@ -224,4 +231,10 @@ function onNodeClick(event: NodeMouseEvent) {
   box-shadow: 0 4px 12px rgba(140,149,159,0.15);
 }
 .error-msg { color: #cf222e; border-color: #ffcecb; background: #ffebe9; }
+.zoom-indicator {
+  position: absolute; bottom: 52px; right: 12px;
+  background: rgba(255,255,255,0.9); border: 1px solid #d0d7de;
+  border-radius: 6px; padding: 3px 8px; font-size: 11px; color: #57606a;
+  pointer-events: none; z-index: 5;
+}
 </style>
