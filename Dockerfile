@@ -17,6 +17,7 @@ RUN npx tsc
 
 # Stage 3: Production
 FROM node:20-alpine
+RUN apk add --no-cache openssl
 WORKDIR /app
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/dist ./dist
