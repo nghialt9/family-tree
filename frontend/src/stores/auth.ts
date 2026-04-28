@@ -15,6 +15,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'));
   const role = ref<'viewer' | 'admin' | null>(localStorage.getItem('role') as 'viewer' | 'admin' | null);
   const personName = ref<string | null>(localStorage.getItem('personName'));
+  const linkedPersonId = ref<string | null>(localStorage.getItem('linkedPersonId'));
 
   const isLoggedIn = computed(() => !!token.value);
   const isAdmin = computed(() => role.value === 'admin');
@@ -30,20 +31,25 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = res.data.token;
     role.value = res.data.role;
     personName.value = res.data.personName ?? null;
+    linkedPersonId.value = res.data.personId ?? null;
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('role', res.data.role);
     if (res.data.personName) localStorage.setItem('personName', res.data.personName);
     else localStorage.removeItem('personName');
+    if (res.data.personId) localStorage.setItem('linkedPersonId', res.data.personId);
+    else localStorage.removeItem('linkedPersonId');
   }
 
   function logout() {
     token.value = null;
     role.value = null;
     personName.value = null;
+    linkedPersonId.value = null;
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('personName');
+    localStorage.removeItem('linkedPersonId');
   }
 
-  return { token, role, personName, userPhone, isLoggedIn, isAdmin, checkPhone, login, logout };
+  return { token, role, personName, userPhone, linkedPersonId, isLoggedIn, isAdmin, checkPhone, login, logout };
 });

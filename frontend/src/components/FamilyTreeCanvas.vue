@@ -31,6 +31,7 @@ import PersonNode from './PersonNode.vue';
 import SpouseConnector from './SpouseConnector.vue';
 import { treeApi } from '../api';
 
+const props = defineProps<{ focusPersonId?: string | null }>();
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
 const { fitView, onNodesInitialized, viewport } = useVueFlow('family-tree');
@@ -182,11 +183,16 @@ onNodesInitialized(() => {
   if (fitPending) {
     fitPending = false;
     nextTick(() => {
-      // Fit to root generation for a readable initial zoom
-      const rootIds = rawNodes.value
-        .filter(n => n.type === 'person' && n.data?.generation === 1)
-        .map(n => ({ id: n.id }));
-      fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
+      if (props.focusPersonId) {
+        // Center on the logged-in user's own node
+        fitView({ nodes: [{ id: props.focusPersonId }], padding: 0.6, duration: 400 });
+      } else {
+        // Fall back to root generation
+        const rootIds = rawNodes.value
+          .filter(n => n.type === 'person' && n.data?.generation === 1)
+          .map(n => ({ id: n.id }));
+        fitView({ nodes: rootIds.length > 0 ? rootIds : undefined, padding: 0.3, duration: 400 });
+      }
     });
   }
 });

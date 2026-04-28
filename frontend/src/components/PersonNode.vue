@@ -4,7 +4,7 @@
     <Handle type="source" :position="Position.Bottom" />
 
     <div class="avatar">
-      <img v-if="data.avatarUrl" :src="data.avatarUrl" :alt="data.fullName" />
+      <img v-if="data.avatarUrl" :src="data.avatarUrl + '?v=' + new Date(data.updatedAt || 0).getTime()" :alt="data.fullName" />
       <span v-else>{{ data.gender === 'female' ? '👩' : '👨' }}</span>
     </div>
 

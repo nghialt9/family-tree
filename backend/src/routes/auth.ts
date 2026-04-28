@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
     ? await prisma.person.findUnique({ where: { id: token.personId }, select: { fullName: true } })
     : null;
   const jwt = signToken({ id: token.id, phone: token.phone, role: token.role });
-  res.json({ token: jwt, role: token.role, personName: person?.fullName ?? null, phone: token.phone });
+  res.json({ token: jwt, role: token.role, personName: person?.fullName ?? null, phone: token.phone, personId: token.personId ?? null });
 });
 
 export { router as authRouter };

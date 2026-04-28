@@ -7,7 +7,7 @@
         <div v-if="loading" class="loading">Đang tải...</div>
         <template v-else-if="person">
           <div class="avatar-section">
-            <img v-if="person.avatarUrl" :src="person.avatarUrl" class="avatar-img" />
+            <img v-if="person.avatarUrl" :src="person.avatarUrl + '?v=' + new Date(person.updatedAt).getTime()" class="avatar-img" />
             <div v-else class="avatar-placeholder">{{ person.gender === 'female' ? '👩' : '👨' }}</div>
             <h2>{{ person.fullName }}</h2>
             <span v-if="person.nickname" class="nickname">"{{ person.nickname }}"</span>

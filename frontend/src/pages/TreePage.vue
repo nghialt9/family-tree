@@ -30,6 +30,7 @@
     <FamilyTreeCanvas
       :key="treeKey"
       ref="canvasRef"
+      :focus-person-id="auth.linkedPersonId"
       @select-person="selectedPersonId = $event"
     />
 
@@ -90,11 +91,23 @@ onMounted(async () => {
       stats.value = res.data;
     } catch { /* ignore */ }
   }, 60_000);
+  window.addEventListener('beforeunload', sendLeave);
 });
 
 onUnmounted(() => {
   if (pingInterval) clearInterval(pingInterval);
+  window.removeEventListener('beforeunload', sendLeave);
 });
+
+function sendLeave() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  fetch('/api/stats/leave', {
+    method: 'POST',
+    keepalive: true,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
 
 function openAddForm() { editingPerson.value = null; showForm.value = true; }
 function openEditForm(person: any) { editingPerson.value = person; showForm.value = true; }

@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 // tokenId → last-seen timestamp (in-memory, resets on restart)
 const onlineMap = new Map<string, number>();
-const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
 function pruneAndCount(): number {
   const cutoff = Date.now() - ONLINE_WINDOW_MS;
@@ -37,6 +37,12 @@ router.post('/ping', requireViewer, async (req: AuthRequest, res) => {
   });
 
   res.json({ totalVisits: stats.totalVisits, onlineNow: pruneAndCount() });
+});
+
+// POST /api/stats/leave — called on tab close via keepalive fetch
+router.post('/leave', requireViewer, (req: AuthRequest, res) => {
+  onlineMap.delete(req.user!.id);
+  res.json({ ok: true });
 });
 
 export { router as statsRouter };
