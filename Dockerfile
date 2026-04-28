@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=backend-build /app/node_modules ./node_modules
 COPY --from=backend-build /app/dist ./dist
 COPY --from=backend-build /app/prisma ./prisma
-COPY --from=frontend-build /app/frontend/dist ./public
+COPY --from=frontend-build /app/public ./public
 RUN mkdir -p /data/uploads
 EXPOSE 3000
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/server.js"]
