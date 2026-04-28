@@ -3,17 +3,18 @@
     <Handle type="target" :position="Position.Top" />
     <Handle type="source" :position="Position.Bottom" />
 
-    <div class="avatar">
-      <img v-if="data.avatarUrl" :src="data.avatarUrl + '?v=' + new Date(data.updatedAt || 0).getTime()" :alt="data.fullName" />
-      <span v-else>{{ data.gender === 'female' ? '👩' : '👨' }}</span>
-    </div>
-
-    <div class="info">
-      <div class="gen-badge">Thế hệ {{ data.generation }}</div>
-      <div class="name">{{ data.fullName }}</div>
-      <div v-if="data.nickname" class="nickname">"{{ data.nickname }}"</div>
-      <div v-if="data.birthDate" class="detail">🎂 {{ formatDate(data.birthDate) }}</div>
-      <div v-if="data.deathDate" class="detail deceased-tag">✝ {{ formatDate(data.deathDate) }}</div>
+    <div class="card-body">
+      <div class="avatar">
+        <img v-if="data.avatarUrl" :src="data.avatarUrl + '?v=' + new Date(data.updatedAt || 0).getTime()" :alt="data.fullName" />
+        <span v-else>{{ data.gender === 'female' ? '👩' : '👨' }}</span>
+      </div>
+      <div class="info">
+        <div class="gen-badge">Thế hệ {{ data.generation }}</div>
+        <div class="name">{{ data.fullName }}</div>
+        <div v-if="data.nickname" class="nickname">"{{ data.nickname }}"</div>
+        <div v-if="data.birthDate" class="detail">🎂 {{ formatDate(data.birthDate) }}</div>
+        <div v-if="data.deathDate" class="detail deceased-tag">✝ {{ formatDate(data.deathDate) }}</div>
+      </div>
     </div>
 
     <div class="actions">
@@ -47,8 +48,8 @@ function formatDate(d: string) {
   background: #ffffff;
   border: 2px solid #d0d7de;
   border-radius: 10px;
-  padding: 10px 12px 8px;
-  width: 220px;
+  padding: 8px 10px 6px;
+  width: 230px;
   cursor: default;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 8px rgba(140,149,159,0.1);
@@ -56,14 +57,21 @@ function formatDate(d: string) {
 .person-node:hover { border-color: #0969da; box-shadow: 0 4px 12px rgba(9,105,218,0.15); }
 .person-node.deceased { border-color: #d0d7de; opacity: 0.65; }
 .person-node.collapsed { border-style: dashed; border-color: #57606a; }
-.avatar { text-align: center; font-size: 36px; margin-bottom: 6px; }
-.avatar img { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid #d0d7de; }
-.gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 1px 8px; font-size: 10px; display: inline-block; margin-bottom: 4px; font-weight: 600; }
-.name { font-weight: 700; font-size: 13px; color: #24292f; }
-.nickname { color: #57606a; font-size: 11px; font-style: italic; }
-.detail { color: #57606a; font-size: 11px; margin-top: 2px; }
+
+.card-body { display: flex; gap: 9px; align-items: flex-start; margin-bottom: 6px; }
+
+.avatar { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.avatar img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #d0d7de; }
+.avatar span { font-size: 44px; line-height: 1; }
+
+.info { flex: 1; min-width: 0; }
+.gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 1px 7px; font-size: 10px; display: inline-block; margin-bottom: 3px; font-weight: 600; }
+.name { font-weight: 700; font-size: 13px; color: #24292f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nickname { color: #57606a; font-size: 11px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail { color: #57606a; font-size: 11px; margin-top: 1px; }
 .deceased-tag { color: #cf222e; }
-.actions { margin-top: 8px; display: flex; gap: 6px; }
+
+.actions { display: flex; gap: 6px; }
 .btn-detail {
   flex: 1;
   background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de;

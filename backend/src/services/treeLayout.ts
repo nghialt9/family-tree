@@ -1,8 +1,8 @@
 import dagre from '@dagrejs/dagre';
 import { Person, Relationship } from '@prisma/client';
 
-const NODE_WIDTH = 220;
-const NODE_HEIGHT = 160;
+const NODE_WIDTH = 230;
+const NODE_HEIGHT = 120;
 const CONNECTOR_WIDTH = 30;
 const CONNECTOR_HEIGHT = 30;
 
