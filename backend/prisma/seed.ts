@@ -4,6 +4,10 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
+  console.log('Clearing existing data...');
+  await prisma.accessToken.deleteMany();
+  await prisma.relationship.deleteMany();
+  await prisma.person.deleteMany();
   console.log('Seeding Lâm family data...');
 
   // Generation 1

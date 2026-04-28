@@ -20,8 +20,8 @@ export interface CreatePersonInput {
 
 export type UpdatePersonInput = Partial<CreatePersonInput>;
 
-export async function createPerson(input: CreatePersonInput) {
-  const { grantAccess, grantRole, grantPassword, ...personData } = input;
+export async function createPerson(input: CreatePersonInput & Record<string, unknown>) {
+  const { grantAccess, grantRole, grantPassword, fatherId: _f, motherId: _m, spouseId: _s, ...personData } = input;
 
   return prisma.$transaction(async (tx) => {
     const person = await tx.person.create({
@@ -48,8 +48,8 @@ export async function createPerson(input: CreatePersonInput) {
   });
 }
 
-export async function updatePerson(id: string, input: UpdatePersonInput) {
-  const { grantAccess, grantRole, grantPassword, ...personData } = input;
+export async function updatePerson(id: string, input: UpdatePersonInput & Record<string, unknown>) {
+  const { grantAccess, grantRole, grantPassword, fatherId: _f, motherId: _m, spouseId: _s, ...personData } = input;
 
   return prisma.$transaction(async (tx) => {
     const person = await tx.person.update({
