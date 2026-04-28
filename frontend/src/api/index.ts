@@ -20,6 +20,7 @@ export const personsApi = {
   create: (data: unknown) => api.post('/persons', data),
   update: (id: string, data: unknown) => api.put(`/persons/${id}`, data),
   delete: (id: string) => api.delete(`/persons/${id}`),
+  getAccess: (id: string) => api.get(`/persons/${id}/access`),
   uploadAvatar: (id: string, file: File) => {
     const fd = new FormData();
     fd.append('avatar', file);

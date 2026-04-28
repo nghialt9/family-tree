@@ -38,6 +38,7 @@
     <!-- Drawer & Form -->
     <PersonDrawer
       :person-id="selectedPersonId"
+      :version="drawerVersion"
       @close="selectedPersonId = null"
       @select-person="selectedPersonId = $event"
       @edit-person="openEditForm"
@@ -69,6 +70,7 @@ const selectedPersonId = ref<string | null>(null);
 const showForm = ref(false);
 const editingPerson = ref<any>(null);
 const treeKey = ref(0);
+const drawerVersion = ref(0);
 const canvasRef = ref<InstanceType<typeof FamilyTreeCanvas>>();
 const stats = ref({ totalVisits: 0, onlineNow: 0 });
 
@@ -94,7 +96,7 @@ onUnmounted(() => {
 function openAddForm() { editingPerson.value = null; showForm.value = true; }
 function openEditForm(person: any) { editingPerson.value = person; showForm.value = true; }
 function closeForm() { showForm.value = false; editingPerson.value = null; }
-async function onSaved() { closeForm(); refreshTree(); }
+async function onSaved() { closeForm(); refreshTree(); drawerVersion.value++; }
 function refreshTree() { treeKey.value++; }
 function handleLogout() { auth.logout(); router.push('/login'); }
 </script>

@@ -31,6 +31,11 @@ router.get('/:id', requireViewer, async (req, res) => {
   res.json(person);
 });
 
+router.get('/:id/access', requireAdmin, async (req, res) => {
+  const token = await prisma.accessToken.findFirst({ where: { personId: req.params.id } });
+  res.json({ hasAccess: !!token, role: token?.role ?? null });
+});
+
 router.get('/:id/relatives', requireViewer, async (req, res) => {
   const { id } = req.params;
   const [asA, asB] = await Promise.all([

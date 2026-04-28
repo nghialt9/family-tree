@@ -18,10 +18,17 @@
               <input type="file" accept="image/*" @change="handleFileChange" ref="fileInput" style="display:none" />
               <button type="button" class="btn-pick" @click="(fileInput as HTMLInputElement)?.click()">Chọn ảnh…</button>
               <button type="button" v-if="avatarPreview" class="btn-clear" @click="clearAvatar">Xóa</button>
-              <span class="upload-hint">JPG / PNG · tối đa 5 MB</span>
+              <span class="upload-hint">JPG / PNG · tối đa 5 MB · nhấn để cắt ảnh</span>
             </div>
           </div>
         </div>
+
+        <AvatarCropper
+          v-if="showCropper"
+          :src="cropperSrc"
+          @confirm="onCropConfirm"
+          @cancel="onCropCancel"
+        />
 
         <div class="field">
           <label>Họ và tên *</label>
@@ -126,6 +133,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { personsApi, relationshipsApi } from '../api';
+import AvatarCropper from './AvatarCropper.vue';
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
@@ -146,6 +154,8 @@ const allPersons = ref<any[]>([]);
 const fileInput = ref<HTMLInputElement | null>(null);
 const avatarFile = ref<File | null>(null);
 const avatarPreview = ref('');
+const showCropper = ref(false);
+const cropperSrc = ref('');
 
 const origRelIds = ref({ fatherRelId: '', motherRelId: '', spouseRelId: '' });
 const origPersonIds = ref({ fatherId: '', motherId: '', spouseId: '' });
@@ -199,6 +209,14 @@ watch(() => props.editPerson, async (p) => {
         spouseId: spouse?.id || '',
       };
     } catch { /* ignore */ }
+    // Pre-fill access grant status from existing AccessToken
+    try {
+      const aRes = await personsApi.getAccess(p.id);
+      if (aRes.data.hasAccess) {
+        form.value.grantAccess = true;
+        form.value.grantRole = aRes.data.role;
+      }
+    } catch { /* ignore — non-admin or no token */ }
   } else {
     form.value = defaultForm();
   }
@@ -207,13 +225,28 @@ watch(() => props.editPerson, async (p) => {
 function handleFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
-  avatarFile.value = file;
-  avatarPreview.value = URL.createObjectURL(file);
+  if (cropperSrc.value) URL.revokeObjectURL(cropperSrc.value);
+  cropperSrc.value = URL.createObjectURL(file);
+  showCropper.value = true;
+}
+
+function onCropConfirm(blob: Blob) {
+  avatarFile.value = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
+  avatarPreview.value = URL.createObjectURL(blob);
+  showCropper.value = false;
+  if (cropperSrc.value) { URL.revokeObjectURL(cropperSrc.value); cropperSrc.value = ''; }
+}
+
+function onCropCancel() {
+  showCropper.value = false;
+  if (cropperSrc.value) { URL.revokeObjectURL(cropperSrc.value); cropperSrc.value = ''; }
+  if (fileInput.value) fileInput.value.value = '';
 }
 
 function clearAvatar() {
   avatarFile.value = null;
-  avatarPreview.value = '';
+  if (avatarPreview.value) { URL.revokeObjectURL(avatarPreview.value); avatarPreview.value = ''; }
   if (fileInput.value) fileInput.value.value = '';
 }
 
@@ -243,7 +276,7 @@ async function handleSubmit() {
       nickname: form.value.nickname || undefined,
       address: form.value.address || undefined,
       bio: form.value.bio || undefined,
-      grantAccess: form.value.grantAccess || undefined,
+      grantAccess: form.value.grantAccess,
       grantRole: form.value.grantAccess ? form.value.grantRole : undefined,
       grantPassword: (form.value.grantAccess && form.value.grantRole === 'admin') ? form.value.grantPassword : undefined,
     };

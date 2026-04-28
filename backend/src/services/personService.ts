@@ -34,14 +34,20 @@ export async function createPerson(input: CreatePersonInput & Record<string, unk
     });
 
     if (grantAccess && personData.phone && grantRole) {
+      const phone = personData.phone as string;
+      // Remove any token already linked to this person with a different phone
+      await tx.accessToken.deleteMany({ where: { personId: person.id, NOT: { phone } } });
       const passwordHash = grantRole === 'admin' && grantPassword
         ? await bcrypt.hash(grantPassword, 12)
-        : undefined;
+        : null;
       await tx.accessToken.upsert({
-        where: { phone: personData.phone },
-        create: { phone: personData.phone, role: grantRole, passwordHash, personId: person.id },
-        update: { role: grantRole, passwordHash, personId: person.id },
+        where: { phone },
+        create: { phone, role: grantRole, passwordHash, personId: person.id },
+        update: { role: grantRole, ...(passwordHash ? { passwordHash } : {}), personId: person.id },
       });
+    } else if (!grantAccess && personData.phone) {
+      // Admin explicitly unchecked grantAccess — revoke token for this person
+      await tx.accessToken.deleteMany({ where: { personId: person.id } });
     }
 
     return person;
@@ -63,14 +69,20 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
     });
 
     if (grantAccess && personData.phone && grantRole) {
+      const phone = personData.phone as string;
+      // Remove any token already linked to this person with a different phone
+      await tx.accessToken.deleteMany({ where: { personId: person.id, NOT: { phone } } });
       const passwordHash = grantRole === 'admin' && grantPassword
         ? await bcrypt.hash(grantPassword, 12)
-        : undefined;
+        : null;
       await tx.accessToken.upsert({
-        where: { phone: personData.phone },
-        create: { phone: personData.phone, role: grantRole, passwordHash, personId: person.id },
+        where: { phone },
+        create: { phone, role: grantRole, passwordHash, personId: person.id },
         update: { role: grantRole, ...(passwordHash ? { passwordHash } : {}), personId: person.id },
       });
+    } else if (!grantAccess && personData.phone) {
+      // Admin explicitly unchecked grantAccess — revoke token for this person
+      await tx.accessToken.deleteMany({ where: { personId: person.id } });
     }
 
     return person;

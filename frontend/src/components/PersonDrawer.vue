@@ -71,7 +71,7 @@ import { ref, watch } from 'vue';
 import { personsApi } from '../api';
 import { useAuthStore } from '../stores/auth';
 
-const props = defineProps<{ personId: string | null }>();
+const props = defineProps<{ personId: string | null; version?: number }>();
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'selectPerson', id: string): void;
@@ -85,17 +85,20 @@ const person = ref<any>(null);
 const relatives = ref<any>(null);
 const loading = ref(false);
 
-watch(() => props.personId, async (id) => {
-  if (!id) { person.value = null; relatives.value = null; return; }
-  loading.value = true;
-  try {
-    const [pRes, rRes] = await Promise.all([personsApi.get(id), personsApi.getRelatives(id)]);
-    person.value = pRes.data;
-    relatives.value = rRes.data;
-  } finally {
-    loading.value = false;
+watch(
+  [() => props.personId, () => props.version],
+  async ([id]) => {
+    if (!id) { person.value = null; relatives.value = null; return; }
+    loading.value = true;
+    try {
+      const [pRes, rRes] = await Promise.all([personsApi.get(id as string), personsApi.getRelatives(id as string)]);
+      person.value = pRes.data;
+      relatives.value = rRes.data;
+    } finally {
+      loading.value = false;
+    }
   }
-});
+);
 
 async function handleDelete() {
   if (!person.value || !confirm(`Xóa ${person.value.fullName}?`)) return;
