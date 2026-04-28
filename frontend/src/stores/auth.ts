@@ -13,12 +13,13 @@ function decodeJwtPhone(token: string): string | null {
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('token'));
-  const role = ref<'viewer' | 'admin' | null>(localStorage.getItem('role') as 'viewer' | 'admin' | null);
+  const role = ref<'viewer' | 'editor' | 'admin' | null>(localStorage.getItem('role') as 'viewer' | 'editor' | 'admin' | null);
   const personName = ref<string | null>(localStorage.getItem('personName'));
   const linkedPersonId = ref<string | null>(localStorage.getItem('linkedPersonId'));
 
   const isLoggedIn = computed(() => !!token.value);
   const isAdmin = computed(() => role.value === 'admin');
+  const isEditor = computed(() => role.value === 'editor' || role.value === 'admin');
   const userPhone = computed(() => (token.value ? decodeJwtPhone(token.value) : null));
 
   async function checkPhone(phone: string): Promise<'viewer' | 'admin'> {
@@ -51,5 +52,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('linkedPersonId');
   }
 
-  return { token, role, personName, userPhone, linkedPersonId, isLoggedIn, isAdmin, checkPhone, login, logout };
+  return { token, role, personName, userPhone, linkedPersonId, isLoggedIn, isAdmin, isEditor, checkPhone, login, logout };
 });

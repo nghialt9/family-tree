@@ -13,7 +13,7 @@
         <span v-if="auth.personName || auth.userPhone" class="user-greeting">
           👤 {{ auth.personName ?? auth.userPhone }}
         </span>
-        <button v-if="isAdmin" class="btn-add" @click="openAddForm">+ Thêm người</button>
+        <button v-if="isEditor" class="btn-add" @click="openAddForm">+ Thêm người</button>
         <button class="btn-logout" @click="handleLogout">Đăng xuất</button>
       </div>
     </div>
@@ -69,6 +69,7 @@ import { statsApi } from '../api';
 const auth = useAuthStore();
 const router = useRouter();
 const isAdmin = auth.isAdmin;
+const isEditor = auth.isEditor;
 
 const selectedPersonId = ref<string | null>(null);
 const showForm = ref(false);

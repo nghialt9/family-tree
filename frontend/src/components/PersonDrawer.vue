@@ -56,9 +56,9 @@
             </div>
           </div>
 
-          <div v-if="isAdmin" class="admin-actions">
+          <div v-if="isEditor" class="admin-actions">
             <button class="btn-edit" @click="$emit('editPerson', person)">✏️ Sửa</button>
-            <button class="btn-delete" @click="handleDelete">🗑️ Xóa</button>
+            <button v-if="isAdmin" class="btn-delete" @click="handleDelete">🗑️ Xóa</button>
           </div>
         </template>
       </div>
@@ -81,6 +81,7 @@ const emit = defineEmits<{
 
 const auth = useAuthStore();
 const isAdmin = auth.isAdmin;
+const isEditor = auth.isEditor;
 const person = ref<any>(null);
 const relatives = ref<any>(null);
 const loading = ref(false);

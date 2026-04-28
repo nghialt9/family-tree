@@ -99,7 +99,7 @@
           </select>
         </div>
 
-        <div v-if="form.phone" class="field full-width access-grant">
+        <div v-if="form.phone && isAdmin" class="field full-width access-grant">
           <label class="checkbox-label">
             <input type="checkbox" v-model="form.grantAccess" />
             Cấp quyền truy cập cho số điện thoại này
@@ -107,6 +107,7 @@
           <div v-if="form.grantAccess" class="grant-options">
             <select v-model="form.grantRole">
               <option value="viewer">Viewer — chỉ xem</option>
+              <option value="editor">Editor — thêm & sửa</option>
               <option value="admin">Admin — thêm/sửa/xóa</option>
             </select>
             <input
@@ -133,7 +134,11 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { personsApi, relationshipsApi } from '../api';
+import { useAuthStore } from '../stores/auth';
 import AvatarCropper from './AvatarCropper.vue';
+
+const auth = useAuthStore();
+const isAdmin = auth.isAdmin;
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();

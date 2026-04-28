@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 export interface JwtPayload {
   id: string;
   phone: string;
-  role: 'viewer' | 'admin';
+  role: 'viewer' | 'editor' | 'admin';
 }
 
 export function signToken(payload: JwtPayload): string {

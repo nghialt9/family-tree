@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { requireViewer, requireAdmin } from '../middleware/auth';
+import { requireViewer, requireEditor, requireAdmin } from '../middleware/auth';
 import { createPerson, updatePerson } from '../services/personService';
 
 const router = Router();
@@ -51,7 +51,7 @@ router.get('/:id/relatives', requireViewer, async (req, res) => {
   res.json({ parents, children, spouses });
 });
 
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireEditor, async (req, res) => {
   try {
     const person = await createPerson(req.body);
     res.status(201).json(person);
@@ -60,7 +60,7 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireEditor, async (req, res) => {
   try {
     const person = await updatePerson(req.params.id, req.body);
     res.json(person);
@@ -74,7 +74,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   res.status(204).send();
 });
 
-router.post('/:id/avatar', requireAdmin, upload.single('avatar'), async (req, res) => {
+router.post('/:id/avatar', requireEditor, upload.single('avatar'), async (req, res) => {
   if (!req.file) { res.status(400).json({ error: 'No file' }); return; }
   const avatarUrl = `/uploads/${path.basename(req.file.path)}`;
   const person = await prisma.person.update({

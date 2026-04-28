@@ -70,6 +70,7 @@ enum RelationshipType {
 
 enum Role {
   viewer
+  editor
   admin
 }
 

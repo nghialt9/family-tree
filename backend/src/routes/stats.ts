@@ -19,24 +19,34 @@ function pruneAndCount(): number {
 
 // GET /api/stats — public, no auth
 router.get('/', async (_req, res) => {
-  const stats = await prisma.siteStats.findUnique({ where: { id: 'global' } });
-  res.json({ totalVisits: stats?.totalVisits ?? 0, onlineNow: pruneAndCount() });
+  try {
+    const stats = await prisma.siteStats.findUnique({ where: { id: 'global' } });
+    res.json({ totalVisits: stats?.totalVisits ?? 0, onlineNow: pruneAndCount() });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /api/stats/ping — called by frontend on mount + every 60s
 // body: { newVisit: boolean }
 router.post('/ping', requireViewer, async (req: AuthRequest, res) => {
-  const key = req.user!.id;
-  onlineMap.set(key, Date.now());
+  try {
+    const key = req.user!.id;
+    onlineMap.set(key, Date.now());
 
-  const { newVisit } = req.body as { newVisit?: boolean };
-  const stats = await prisma.siteStats.upsert({
-    where: { id: 'global' },
-    create: { id: 'global', totalVisits: newVisit ? 1 : 0 },
-    update: newVisit ? { totalVisits: { increment: 1 } } : {},
-  });
+    const { newVisit } = req.body as { newVisit?: boolean };
+    const stats = await prisma.siteStats.upsert({
+      where: { id: 'global' },
+      create: { id: 'global', totalVisits: newVisit ? 1 : 0 },
+      update: newVisit ? { totalVisits: { increment: 1 } } : {},
+    });
 
-  res.json({ totalVisits: stats.totalVisits, onlineNow: pruneAndCount() });
+    res.json({ totalVisits: stats.totalVisits, onlineNow: pruneAndCount() });
+  } catch (error) {
+    console.error('Error updating stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /api/stats/leave — called on tab close via keepalive fetch

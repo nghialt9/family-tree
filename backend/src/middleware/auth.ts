@@ -22,6 +22,14 @@ export function requireViewer(req: AuthRequest, res: Response, next: NextFunctio
   next();
 }
 
+export function requireEditor(req: AuthRequest, res: Response, next: NextFunction): void {
+  const user = extractUser(req);
+  if (!user) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  if (user.role === 'viewer') { res.status(403).json({ error: 'Forbidden' }); return; }
+  req.user = user;
+  next();
+}
+
 export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction): void {
   const user = extractUser(req);
   if (!user) { res.status(401).json({ error: 'Unauthorized' }); return; }
