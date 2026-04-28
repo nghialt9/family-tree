@@ -5,7 +5,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "jest --runInBand --forceExit",
+    "test": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5432/family_tree_test JWT_SECRET=test-secret jest --runInBand --forceExit",
     "db:seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
@@ -32,6 +32,7 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.5",
     "ts-node": "^10.9.2",
+    "cross-env": "^7.0.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
   }
