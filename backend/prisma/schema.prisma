@@ -72,3 +72,8 @@ enum Role {
   viewer
   admin
 }
+
+model SiteStats {
+  id          String @id @default("global")
+  totalVisits Int    @default(0)
+}

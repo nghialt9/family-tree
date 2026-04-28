@@ -1,0 +1,41 @@
+import { Router } from 'express';
+import { PrismaClient } from '@prisma/client';
+
+const router = Router();
+const prisma = new PrismaClient();
+
+// IP → last-seen timestamp (in-memory, resets on restart)
+const onlineMap = new Map<string, number>();
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+function pruneAndCount(): number {
+  const cutoff = Date.now() - ONLINE_WINDOW_MS;
+  for (const [ip, ts] of onlineMap) {
+    if (ts < cutoff) onlineMap.delete(ip);
+  }
+  return onlineMap.size;
+}
+
+// GET /api/stats — public, no auth
+router.get('/', async (_req, res) => {
+  const stats = await prisma.siteStats.findUnique({ where: { id: 'global' } });
+  res.json({ totalVisits: stats?.totalVisits ?? 0, onlineNow: pruneAndCount() });
+});
+
+// POST /api/stats/ping — called by frontend on mount + every 60s
+// body: { newVisit: boolean }
+router.post('/ping', async (req, res) => {
+  const ip = req.ip ?? 'unknown';
+  onlineMap.set(ip, Date.now());
+
+  const { newVisit } = req.body as { newVisit?: boolean };
+  const stats = await prisma.siteStats.upsert({
+    where: { id: 'global' },
+    create: { id: 'global', totalVisits: newVisit ? 1 : 0 },
+    update: newVisit ? { totalVisits: { increment: 1 } } : {},
+  });
+
+  res.json({ totalVisits: stats.totalVisits, onlineNow: pruneAndCount() });
+});
+
+export { router as statsRouter };

@@ -4,6 +4,25 @@
       <h2>{{ editPerson ? 'Sửa thông tin' : 'Thêm người mới' }}</h2>
 
       <form @submit.prevent="handleSubmit" class="form-grid">
+
+        <!-- Avatar -->
+        <div class="field full-width avatar-field">
+          <label>Ảnh đại diện</label>
+          <div class="avatar-row">
+            <div class="avatar-preview">
+              <img v-if="avatarPreview" :src="avatarPreview" />
+              <img v-else-if="editPerson?.avatarUrl" :src="editPerson.avatarUrl" />
+              <span v-else class="avatar-placeholder">{{ form.gender === 'female' ? '👩' : '👨' }}</span>
+            </div>
+            <div class="avatar-upload">
+              <input type="file" accept="image/*" @change="handleFileChange" ref="fileInput" style="display:none" />
+              <button type="button" class="btn-pick" @click="(fileInput as HTMLInputElement)?.click()">Chọn ảnh…</button>
+              <button type="button" v-if="avatarPreview" class="btn-clear" @click="clearAvatar">Xóa</button>
+              <span class="upload-hint">JPG / PNG · tối đa 5 MB</span>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <label>Họ và tên *</label>
           <input v-model="form.fullName" required />
@@ -124,6 +143,10 @@ const loading = ref(false);
 const error = ref('');
 const allPersons = ref<any[]>([]);
 
+const fileInput = ref<HTMLInputElement | null>(null);
+const avatarFile = ref<File | null>(null);
+const avatarPreview = ref('');
+
 const origRelIds = ref({ fatherRelId: '', motherRelId: '', spouseRelId: '' });
 const origPersonIds = ref({ fatherId: '', motherId: '', spouseId: '' });
 
@@ -143,6 +166,8 @@ onMounted(async () => {
 });
 
 watch(() => props.editPerson, async (p) => {
+  avatarFile.value = null;
+  avatarPreview.value = '';
   origRelIds.value = { fatherRelId: '', motherRelId: '', spouseRelId: '' };
   origPersonIds.value = { fatherId: '', motherId: '', spouseId: '' };
   if (p) {
@@ -178,6 +203,19 @@ watch(() => props.editPerson, async (p) => {
     form.value = defaultForm();
   }
 }, { immediate: true });
+
+function handleFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  avatarFile.value = file;
+  avatarPreview.value = URL.createObjectURL(file);
+}
+
+function clearAvatar() {
+  avatarFile.value = null;
+  avatarPreview.value = '';
+  if (fileInput.value) fileInput.value.value = '';
+}
 
 async function handleRelationships(personId: string) {
   if (form.value.fatherId !== origPersonIds.value.fatherId) {
@@ -217,6 +255,9 @@ async function handleSubmit() {
       const res = await personsApi.create(payload);
       savedId = res.data.id;
     }
+    if (avatarFile.value) {
+      await personsApi.uploadAvatar(savedId, avatarFile.value);
+    }
     await handleRelationships(savedId);
     emit('saved');
   } catch (e: any) {
@@ -239,6 +280,19 @@ label { font-size: 12px; color: #57606a; font-weight: 500; }
 input, select, textarea { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 8px 10px; color: #24292f; font-size: 13px; width: 100%; box-sizing: border-box; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
 textarea { resize: vertical; }
+
+/* Avatar */
+.avatar-field { }
+.avatar-row { display: flex; gap: 14px; align-items: center; }
+.avatar-preview { width: 72px; height: 72px; border-radius: 50%; border: 2px solid #d0d7de; background: #f6f8fa; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-placeholder { font-size: 36px; }
+.avatar-upload { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.btn-pick { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; color: #24292f; }
+.btn-pick:hover { background: #eaeef2; }
+.btn-clear { background: #ffebe9; border: 1px solid #ffcecb; border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; color: #cf222e; }
+.upload-hint { font-size: 11px; color: #57606a; width: 100%; }
+
 .access-grant { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 8px; padding: 12px; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #24292f; cursor: pointer; font-weight: 500; }
 .grant-options { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }

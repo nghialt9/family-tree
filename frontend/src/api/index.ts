@@ -35,3 +35,8 @@ export const relationshipsApi = {
 export const treeApi = {
   get: () => api.get('/tree'),
 };
+
+export const statsApi = {
+  ping: (newVisit: boolean) => api.post('/stats/ping', { newVisit }),
+  get: () => api.get('/stats'),
+};
