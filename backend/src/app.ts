@@ -17,7 +17,7 @@ app.use('/api/relationships', relationshipsRouter);
 app.use('/api/tree', treeRouter);
 
 // Serve built frontend in production
-const publicDir = path.join(__dirname, '../public');
+const publicDir = path.join(__dirname, '../../public');
 app.use(express.static(publicDir));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
