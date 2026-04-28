@@ -21,11 +21,11 @@
       <button
         v-if="data.hasChildren"
         class="btn-collapse"
-        :class="{ is-collapsed: data.isCollapsed }"
+        :class="{ 'is-collapsed': data.isCollapsed }"
         @click.stop="data.onToggleCollapse?.(data.id)"
         :title="data.isCollapsed ? 'Hiện ' + data.hiddenCount + ' người' : 'Thu gọn'"
       >
-        {{ data.isCollapsed ? `▶ ${data.hiddenCount}` : '▼' }}
+        {{ data.isCollapsed ? '▶ ' + data.hiddenCount : '▼' }}
       </button>
     </div>
   </div>
