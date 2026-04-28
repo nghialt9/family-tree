@@ -111,11 +111,11 @@
               <option value="admin">Admin — thêm/sửa/xóa</option>
             </select>
             <input
-              v-if="form.grantRole === 'admin'"
+              v-if="form.grantRole === 'admin' || form.grantRole === 'editor'"
               v-model="form.grantPassword"
               type="password"
-              placeholder="Mật khẩu cho admin *"
-              :required="form.grantRole === 'admin' && form.grantAccess"
+              placeholder="Mật khẩu *"
+              :required="(form.grantRole === 'admin' || form.grantRole === 'editor') && form.grantAccess"
             />
           </div>
         </div>

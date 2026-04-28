@@ -18,10 +18,10 @@ router.post('/login', async (req, res) => {
   const token = await prisma.accessToken.findUnique({ where: { phone } });
   if (!token) { res.status(404).json({ error: 'Phone not found' }); return; }
 
-  if (token.role === 'admin') {
-    if (!password) { res.status(400).json({ error: 'Password required for admin' }); return; }
+  if (token.role === 'admin' || token.role === 'editor') {
+    if (!password) { res.status(400).json({ error: 'Mật khẩu bắt buộc' }); return; }
     const valid = await bcrypt.compare(password, token.passwordHash!);
-    if (!valid) { res.status(401).json({ error: 'Invalid password' }); return; }
+    if (!valid) { res.status(401).json({ error: 'Mật khẩu không đúng' }); return; }
   }
 
   const person = token.personId

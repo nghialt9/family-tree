@@ -37,7 +37,7 @@ export async function createPerson(input: CreatePersonInput & Record<string, unk
       const phone = personData.phone as string;
       // Remove any token already linked to this person with a different phone
       await tx.accessToken.deleteMany({ where: { personId: person.id, NOT: { phone } } });
-      const passwordHash = grantRole === 'admin' && grantPassword
+      const passwordHash = (grantRole === 'admin' || grantRole === 'editor') && grantPassword
         ? await bcrypt.hash(grantPassword, 12)
         : null;
       await tx.accessToken.upsert({
@@ -72,7 +72,7 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
       const phone = personData.phone as string;
       // Remove any token already linked to this person with a different phone
       await tx.accessToken.deleteMany({ where: { personId: person.id, NOT: { phone } } });
-      const passwordHash = grantRole === 'admin' && grantPassword
+      const passwordHash = (grantRole === 'admin' || grantRole === 'editor') && grantPassword
         ? await bcrypt.hash(grantPassword, 12)
         : null;
       await tx.accessToken.upsert({

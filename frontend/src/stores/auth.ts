@@ -22,7 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isEditor = computed(() => role.value === 'editor' || role.value === 'admin');
   const userPhone = computed(() => (token.value ? decodeJwtPhone(token.value) : null));
 
-  async function checkPhone(phone: string): Promise<'viewer' | 'admin'> {
+  async function checkPhone(phone: string): Promise<'viewer' | 'editor' | 'admin'> {
     const res = await authApi.checkPhone(phone);
     return res.data.role as 'viewer' | 'admin';
   }

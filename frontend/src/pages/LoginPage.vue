@@ -11,7 +11,7 @@
         </div>
 
         <div v-if="step === 2" class="field">
-          <label>Mật khẩu (admin)</label>
+          <label>Mật khẩu</label>
           <input v-model="password" type="password" placeholder="••••••••" required />
         </div>
 
@@ -47,7 +47,7 @@ async function handleCheckPhone() {
   loading.value = true; error.value = '';
   try {
     const role = await auth.checkPhone(phone.value);
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'editor') {
       step.value = 2;
     } else {
       await auth.login(phone.value);
