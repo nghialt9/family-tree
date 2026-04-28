@@ -18,7 +18,11 @@ app.use('/api/relationships', relationshipsRouter);
 app.use('/api/tree', treeRouter);
 app.use('/api/stats', statsRouter);
 
-// Serve built frontend in production
+// Serve uploaded files (persistent volume in production, ./uploads locally)
+const uploadDir = path.resolve(process.env.UPLOAD_DIR ?? path.join(__dirname, '../../uploads'));
+app.use('/uploads', express.static(uploadDir));
+
+// Serve built frontend
 const publicDir = path.join(__dirname, '../../public');
 app.use(express.static(publicDir));
 app.get('*', (_req, res) => {
