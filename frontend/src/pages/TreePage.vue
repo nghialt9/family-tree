@@ -144,4 +144,17 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 /* Footer */
 .footer { background: #ffffff; border-top: 1px solid #d0d7de; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #57606a; flex-shrink: 0; }
 .footer strong { color: #24292f; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .toolbar { padding: 0 10px; gap: 6px; }
+  .app-title { font-size: 0.8rem; }
+  .stats { display: none; }
+  .user-greeting { display: none; }
+  .btn-add { padding: 6px 10px; font-size: 12px; }
+  .btn-logout { padding: 6px 10px; font-size: 12px; }
+  .hero { padding: 10px 14px; }
+  .hero-content h2 { font-size: 0.9rem; }
+  .hero-content p { font-size: 11px; }
+}
 </style>

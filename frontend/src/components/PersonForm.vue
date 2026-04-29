@@ -85,24 +85,44 @@
         </div>
 
         <div v-if="form.phone && isEditor" class="field full-width access-grant">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="form.grantAccess" />
-            Cấp quyền truy cập cho số điện thoại này
-          </label>
-          <div v-if="form.grantAccess" class="grant-options">
-            <select v-model="form.grantRole" :disabled="!isAdmin">
-              <option value="viewer">Viewer — chỉ xem</option>
-              <option v-if="isAdmin" value="editor">Editor — thêm & sửa</option>
-              <option v-if="isAdmin" value="admin">Admin — thêm/sửa/xóa</option>
-            </select>
+
+          <!-- Self-edit: role is locked, only password can change -->
+          <template v-if="isSelfEdit">
+            <div class="self-role-info">
+              Vai trò hiện tại: <strong>{{ roleLabel(form.grantRole) }}</strong>
+              <span class="role-note">· không thể thay đổi vai trò của chính mình</span>
+            </div>
             <input
-              v-if="isAdmin && (form.grantRole === 'admin' || form.grantRole === 'editor')"
+              v-if="form.grantAccess"
               v-model="form.grantPassword"
               type="password"
-              placeholder="Mật khẩu *"
-              :required="isAdmin && (form.grantRole === 'admin' || form.grantRole === 'editor') && form.grantAccess"
+              class="mt-6"
+              placeholder="Mật khẩu mới (để trống = giữ nguyên)"
             />
-          </div>
+          </template>
+
+          <!-- Editing someone else -->
+          <template v-else>
+            <label class="checkbox-label">
+              <input type="checkbox" v-model="form.grantAccess" />
+              Cấp quyền truy cập cho số điện thoại này
+            </label>
+            <div v-if="form.grantAccess" class="grant-options">
+              <select v-model="form.grantRole" :disabled="!isAdmin">
+                <option value="viewer">Viewer — chỉ xem</option>
+                <option v-if="isAdmin" value="editor">Editor — thêm & sửa</option>
+                <option v-if="isAdmin" value="admin">Admin — thêm/sửa/xóa</option>
+              </select>
+              <input
+                v-if="isAdmin && (form.grantRole === 'admin' || form.grantRole === 'editor')"
+                v-model="form.grantPassword"
+                type="password"
+                placeholder="Mật khẩu *"
+                :required="form.grantAccess"
+              />
+            </div>
+          </template>
+
         </div>
 
         <p v-if="error" class="error full-width">{{ error }}</p>
@@ -125,7 +145,15 @@ import AvatarCropper from './AvatarCropper.vue';
 import SearchableSelect from './SearchableSelect.vue';
 
 const auth = useAuthStore();
-const { isAdmin, isEditor } = storeToRefs(auth);
+const { isAdmin, isEditor, linkedPersonId } = storeToRefs(auth);
+
+const isSelfEdit = computed(() => !!props.editPerson && !!linkedPersonId.value && props.editPerson.id === linkedPersonId.value);
+
+function roleLabel(r: string) {
+  if (r === 'admin') return 'Admin';
+  if (r === 'editor') return 'Editor — thêm & sửa';
+  return 'Viewer — chỉ xem';
+}
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
@@ -281,6 +309,28 @@ async function handleRelationships(personId: string) {
 async function handleSubmit() {
   loading.value = true; error.value = '';
   try {
+    // Compute access grant fields based on who is being edited
+    let grantAccess: boolean | undefined;
+    let grantRole: string | undefined;
+    let grantPassword: string | undefined;
+
+    if (isSelfEdit.value) {
+      // Self-edit: role is immutable; only update password if provided
+      grantAccess = form.value.grantAccess;
+      grantRole   = form.value.grantAccess ? form.value.grantRole : undefined;
+      grantPassword = (form.value.grantAccess && form.value.grantPassword) ? form.value.grantPassword : undefined;
+    } else if (isAdmin.value) {
+      grantAccess   = form.value.grantAccess;
+      grantRole     = form.value.grantAccess ? form.value.grantRole : undefined;
+      grantPassword = (form.value.grantAccess && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor') && form.value.grantPassword)
+        ? form.value.grantPassword : undefined;
+    } else {
+      // Editor editing others: viewer access only, no password
+      grantAccess   = form.value.grantAccess || undefined;
+      grantRole     = form.value.grantAccess ? 'viewer' : undefined;
+      grantPassword = undefined;
+    }
+
     const payload = {
       ...form.value,
       birthDate: form.value.birthDate || undefined,
@@ -289,12 +339,9 @@ async function handleSubmit() {
       nickname: form.value.nickname || undefined,
       address: form.value.address || undefined,
       bio: form.value.bio || undefined,
-      // Admin: can grant/revoke any role. Editor: can only grant viewer (undefined = don't touch existing token).
-      grantAccess: isAdmin.value ? form.value.grantAccess : (form.value.grantAccess || undefined),
-      grantRole: form.value.grantAccess ? (isAdmin.value ? form.value.grantRole : 'viewer') : undefined,
-      grantPassword: (form.value.grantAccess && isAdmin.value && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor'))
-        ? form.value.grantPassword
-        : undefined,
+      grantAccess,
+      grantRole,
+      grantPassword,
     };
     let savedId: string;
     if (props.editPerson) {
@@ -345,6 +392,15 @@ textarea { resize: vertical; }
 .access-grant { background: #ddf4ff; border: 1px solid #54aeff; border-radius: 8px; padding: 12px; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #24292f; cursor: pointer; font-weight: 500; }
 .grant-options { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.self-role-info { font-size: 13px; color: #24292f; }
+.role-note { font-size: 11px; color: #57606a; }
+.mt-6 { margin-top: 6px; }
+
+@media (max-width: 560px) {
+  .modal { padding: 18px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .full-width { grid-column: 1; }
+}
 .buttons { display: flex; gap: 10px; justify-content: flex-end; }
 .buttons button { padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
 .buttons button[type=button] { background: #f6f8fa; border: 1px solid #d0d7de; color: #24292f; }
