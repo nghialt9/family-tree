@@ -1,300 +1,311 @@
 # Family Tree App — Design Spec
-**Date:** 2026-04-28  
-**App name (fly.io):** `justinlam-familytree`  
-**URL:** `https://justinlam-familytree.fly.dev`
+
+**Date:** 2026-04-28 · **Last updated:** 2026-04-29  
+**App:** `justinlam-familytree` · **URL:** https://justinlam-familytree.fly.dev
 
 ---
 
 ## Overview
 
-A multi-generation Vietnamese family tree web app for the Lâm family. Stores rich biographical data for each family member across generations, visualizes parent-child and spouse relationships interactively, restricts access via phone number authentication, and supports full CRUD through the UI. Deployed on fly.io with Docker.
+Ứng dụng web gia phả nhiều thế hệ cho họ Lâm. Lưu trữ thông tin thành viên, hiển thị sơ đồ quan hệ tương tác, phân quyền truy cập theo số điện thoại, hỗ trợ CRUD đầy đủ qua giao diện web. Deploy trên fly.io bằng Docker.
 
 ---
 
 ## Tech Stack
 
-| Layer | Choice |
-|---|---|
-| Frontend | Vue 3 + Vite |
-| Tree rendering | VueFlow + dagre (layout algorithm) |
-| State management | Pinia |
-| Backend | Node.js + Express |
+| Layer | Lựa chọn |
+|-------|----------|
+| Frontend | Vue 3 + Vite + TypeScript |
+| Canvas | @vue-flow/core (VueFlow) + @dagrejs/dagre |
+| State | Pinia |
+| Backend | Node.js + Express + TypeScript |
 | ORM | Prisma |
 | Database | PostgreSQL 16 |
-| Auth | JWT — viewer: phone only; admin: phone + bcrypt password |
-| Container | Docker (multi-stage) + Docker Compose |
-| Hosting | fly.io — Singapore region |
+| Auth | JWT — viewer: SĐT; editor/admin: SĐT + bcrypt password |
+| Container | Docker multi-stage + Docker Compose |
+| Hosting | fly.io — Singapore (`sin`) |
 | CI/CD | GitHub Actions → flyctl deploy |
 
 ---
 
-## Authentication
+## Phân quyền (Roles)
 
-Two roles with different login flows:
+Hệ thống có **3 vai trò**, lưu trong bảng `access_tokens`:
 
-- **viewer** — enters phone number only → backend checks `access_tokens` table → receives JWT
-- **admin** — enters phone number + password → backend verifies both → receives JWT with `role: admin`
+| Vai trò | Đăng nhập | Quyền |
+|---------|-----------|-------|
+| `viewer` | SĐT (không cần mật khẩu) | Xem cây, xem chi tiết |
+| `editor` | SĐT + mật khẩu bcrypt | viewer + thêm/sửa người, upload ảnh, thêm/xóa quan hệ, cấp quyền viewer cho người khác |
+| `admin` | SĐT + mật khẩu bcrypt | editor + xóa người, cấp/thu hồi mọi quyền (viewer/editor/admin) |
 
-Phone numbers + roles + hashed passwords are stored in `access_tokens` table.
+**Ràng buộc phân quyền bổ sung:**
+- Editor không thể sửa quyền của tài khoản editor hoặc admin khác
+- Khi tự sửa hồ sơ của mình (self-edit): vai trò bị khóa, chỉ được thay mật khẩu
+- Backend kiểm tra quyền hai lớp: middleware guard + logic trong route handler
 
-**Login flow (LoginPage.vue):**
-1. User enters phone number → clicks "Tiếp tục"
-2. Backend returns `{ role }` without issuing token yet (just confirms phone exists)
-3. If `role === viewer`: issue JWT immediately, redirect to `/`
-4. If `role === admin`: show second step — password field → user submits → backend verifies bcrypt hash → issue JWT
+**Luồng đăng nhập (LoginPage.vue):**
+1. Nhập SĐT → `POST /api/auth/check-phone` → nhận `{ role }`
+2. `role === 'viewer'`: gọi login ngay (không cần mật khẩu) → nhận JWT → redirect `/`
+3. `role === 'editor' | 'admin'`: hiện ô nhập mật khẩu → `POST /api/auth/login` → JWT
 
-**Password storage:** Admin passwords are hashed with bcrypt (cost factor 12) and stored in `access_tokens.password_hash`. Viewer accounts have `password_hash = NULL`.
+**Lưu trữ mật khẩu:** bcrypt (cost factor 12) trong `access_tokens.password_hash`. Viewer không có hash (NULL).
 
-**Auto-provisioning**: When an admin adds or edits a person with a phone number filled in, a checkbox "Cấp quyền truy cập" appears. If checked, the admin selects a role (viewer/admin). If admin role is selected, a password field appears (required). Backend upserts `access_tokens` (including bcrypt-hashed password for admin) in the same transaction as the person save.
+**Auto-provisioning:** Khi thêm/sửa người có SĐT và tích "Cấp quyền truy cập", backend upsert `access_tokens` trong cùng transaction với lưu người.
 
 ---
 
 ## Database Schema
 
 ### `persons`
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID PK | |
-| full_name | VARCHAR | Họ và tên |
+| Cột | Kiểu | Ghi chú |
+|-----|------|---------|
+| id | UUID PK | cuid() |
+| fullName | VARCHAR | Họ và tên |
 | nickname | VARCHAR NULL | Tên thường gọi |
 | gender | ENUM(male, female) | |
-| birth_date | DATE NULL | Ngày sinh |
-| death_date | DATE NULL | Ngày mất |
-| phone | VARCHAR NULL | Số điện thoại |
-| address | TEXT NULL | Địa chỉ |
+| birthDate | DATE NULL | |
+| deathDate | DATE NULL | |
+| phone | VARCHAR NULL | SĐT liên hệ |
+| address | TEXT NULL | |
 | bio | TEXT NULL | Tiểu sử / ghi chú |
-| avatar_url | VARCHAR NULL | Path ảnh: `/data/avatars/<uuid>.jpg` trên fly.io volume |
-| generation | INT | Thế hệ (1, 2, 3…) |
-| is_alive | BOOLEAN | Default true; backend sets false automatically when death_date is provided |
-| created_at | TIMESTAMP | |
-| updated_at | TIMESTAMP | |
+| avatarUrl | VARCHAR NULL | `/uploads/<filename>` |
+| generation | INT | Thế hệ 1, 2, 3… |
+| isAlive | BOOLEAN | Backend tự set: `!deathDate` |
+| createdAt | TIMESTAMP | |
+| updatedAt | TIMESTAMP | |
 
 ### `relationships`
-| Column | Type | Notes |
-|---|---|---|
+| Cột | Kiểu | Ghi chú |
+|-----|------|---------|
 | id | UUID PK | |
-| person_a_id | UUID FK → persons | Cha/mẹ (parent_child) hoặc người A (spouse) |
-| person_b_id | UUID FK → persons | Con (parent_child) hoặc người B (spouse) |
+| personAId | UUID FK → persons | Cha/mẹ (parent_child) hoặc người A (spouse) |
+| personBId | UUID FK → persons | Con (parent_child) hoặc người B (spouse) |
 | type | ENUM(parent_child, spouse) | |
-| married_date | DATE NULL | Chỉ dùng khi type=spouse |
-| divorced_date | DATE NULL | Chỉ dùng khi type=spouse |
+| marriedDate | DATE NULL | |
+| divorcedDate | DATE NULL | |
+
+Index trên `personAId`, `personBId`, `type` để tối ưu query layout.
 
 ### `access_tokens`
-| Column | Type | Notes |
-|---|---|---|
+| Cột | Kiểu | Ghi chú |
+|-----|------|---------|
 | id | UUID PK | |
-| phone | VARCHAR UNIQUE | Số điện thoại |
-| role | ENUM(viewer, admin) | |
-| label | VARCHAR NULL | Tên hiển thị ("Chú Lăng", "Admin"…) |
-| password_hash | VARCHAR NULL | bcrypt hash — chỉ admin; viewer để NULL |
-| person_id | UUID FK NULL → persons | Liên kết tới bản ghi người (nếu có) |
+| phone | VARCHAR UNIQUE | SĐT = username |
+| role | ENUM(viewer, editor, admin) | |
+| label | VARCHAR NULL | Tên hiển thị |
+| passwordHash | VARCHAR NULL | bcrypt — editor/admin; viewer để NULL |
+| personId | UUID FK NULL → persons UNIQUE | Liên kết bản ghi người |
+
+### `site_stats`
+| Cột | Kiểu | Ghi chú |
+|-----|------|---------|
+| id | VARCHAR PK | Fixed = "global" |
+| totalVisits | INT | Lũy kế, tăng mỗi session mới |
+
+Online users theo dõi in-memory (Map token→timestamp, cửa sổ 2 phút).
 
 ---
 
-## Project Structure
+## Cấu trúc thư mục (as-built)
 
 ```
 family-tree/
-├── frontend/               Vue 3 + Vite
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── FamilyTreeCanvas.vue
-│   │   │   ├── PersonNode.vue
-│   │   │   ├── SpouseConnector.vue
-│   │   │   ├── PersonDrawer.vue
-│   │   │   └── PersonForm.vue
-│   │   ├── pages/
-│   │   │   ├── LoginPage.vue
-│   │   │   └── TreePage.vue
-│   │   ├── stores/         Pinia
-│   │   └── api/            Axios wrappers
-│   ├── Dockerfile          multi-stage: build → nginx
-│   └── nginx.conf
-├── backend/                Node.js + Express
-│   ├── src/
-│   │   ├── routes/         persons, relationships, tree, auth
-│   │   ├── middleware/      jwt auth, role guard
-│   │   └── services/       tree layout (dagre), person service
+├── backend/
 │   ├── prisma/
 │   │   ├── schema.prisma
-│   │   └── seed.ts         import dữ liệu từ treant-js cũ
-│   └── Dockerfile
-├── fly.toml
+│   │   ├── seed.ts
+│   │   └── migrations/
+│   └── src/
+│       ├── app.ts                     # Express, static serving /public
+│       ├── server.ts                  # HTTP server
+│       ├── lib/jwt.ts                 # signToken / verifyToken
+│       ├── middleware/auth.ts         # requireViewer / requireEditor / requireAdmin
+│       ├── routes/
+│       │   ├── auth.ts                # check-phone, login
+│       │   ├── persons.ts             # CRUD + avatar + access grant
+│       │   ├── relationships.ts       # create / delete
+│       │   ├── tree.ts                # GET /api/tree
+│       │   └── stats.ts               # ping / leave / get
+│       └── services/
+│           ├── personService.ts       # createPerson / updatePerson
+│           └── treeLayout.ts          # dagre layout engine
+├── frontend/
+│   └── src/
+│       ├── api/index.ts
+│       ├── stores/auth.ts             # token, role, linkedPersonId
+│       ├── pages/
+│       │   ├── LoginPage.vue
+│       │   └── TreePage.vue
+│       └── components/
+│           ├── FamilyTreeCanvas.vue   # VueFlow, collapse logic
+│           ├── FamilyGroupNode.vue    # Khung nền cụm gia đình
+│           ├── PersonNode.vue         # Card node
+│           ├── SpouseConnector.vue    # Midpoint node 💍
+│           ├── PersonDrawer.vue       # Slide-in detail
+│           ├── PersonForm.vue         # Add/edit modal
+│           ├── AvatarCropper.vue      # Canvas crop
+│           └── SearchableSelect.vue   # Combobox có dấu/không dấu
+├── Dockerfile                         # 3-stage build
 ├── docker-compose.yml
+├── fly.toml
 └── .github/workflows/deploy.yml
 ```
 
 ---
 
-## Key Components
+## Components chính
 
 ### `FamilyTreeCanvas.vue`
-VueFlow canvas full-screen. Calls `GET /api/tree` on mount. Renders two custom node types (`person`, `spouseConnector`) and two edge types (`parentChild`, `spouse`). Supports zoom, pan, and branch collapse.
+Canvas VueFlow full-screen. Gọi `GET /api/tree` khi mount. Render 3 node type: `person`, `spouseConnector`, `familyGroup`. Quản lý collapse/expand nhánh con (ẩn descendants theo BFS từ node bị collapse). `familyGroup` nodes không tương tác (zIndex −1).
 
 ### `PersonNode.vue`
-Rich card (style C). Shows: avatar, full name, nickname, generation badge, birth/death dates, phone, alive/deceased indicator, "Chi tiết ▼" button. Clicking the button opens `PersonDrawer`. Admin users see an edit icon.
+Card hiển thị: ảnh đại diện (64px tròn), badge thế hệ, họ tên, tên gọi, ngày sinh/mất. Nút ▼/▶ thu gọn nhánh nếu có con. Người đã mất hiển thị mờ hơn.
 
 ### `SpouseConnector.vue`
-Invisible node placed horizontally between two spouse nodes. Spouse edges connect each spouse to this node. Parent-child edges originate from this node downward. This ensures children visually descend from the midpoint of the couple.
+Node vô hình (30×30px) đặt ở giữa cặp vợ/chồng. Cạnh `spouse` kết nối mỗi người vào node này; cạnh `parentChild` xuất phát từ đây xuống con.
+
+### `FamilyGroupNode.vue`
+Node nền (non-interactive) vẽ khung xanh nhạt viền nét đứt quanh từng cụm gia đình. Kích thước = bounding box cụm + 24px padding.
 
 ### `PersonDrawer.vue`
-Slide-in panel from the right. Shows: large avatar, full bio, address, all children (linked), spouse link, parents link. Admin-only: "Sửa" and "Xóa" buttons.
+Slide-in từ phải. Ảnh đại diện lớn, thông tin đầy đủ, tiểu sử, danh sách quan hệ (click để navigate). Nút Sửa cho editor+; nút Xóa cho admin.
 
 ### `PersonForm.vue`
-Modal for add/edit. Fields: all `persons` columns. Dropdowns to select father, mother, spouse from existing persons list. If phone is filled: checkbox "Cấp quyền truy cập" → role selector (viewer/admin). On submit, backend saves person + upserts access_token in one transaction.
+Modal thêm/sửa. Combobox `SearchableSelect` để chọn cha/mẹ/vợ-chồng (tìm có dấu/không dấu). Thế hệ tự tính từ cha/mẹ. Section cấp quyền:
+- Self-edit: vai trò khóa, chỉ đổi mật khẩu
+- Editor editing others: chỉ cấp viewer, ẩn nếu người kia đã là editor/admin
+- Admin: toàn quyền (viewer/editor/admin + mật khẩu)
+
+### `SearchableSelect.vue`
+Combobox custom: gõ để lọc, mũi tên lên/xuống để di chuyển, Enter để chọn, × để xóa. Dùng `Teleport to="body"` + `position: fixed` để thoát overflow của modal. Tìm kiếm chuẩn hóa: `NFD + strip combining marks + đ→d`.
+
+### `AvatarCropper.vue`
+Crop ảnh bằng Canvas API. Output: JPEG 256×256. Preview dạng tròn.
 
 ### `LoginPage.vue`
-Two-step login:
-- **Bước 1**: Nhập SĐT → `POST /api/auth/check-phone` → nếu viewer thì gọi luôn login; nếu admin thì hiện bước 2.
-- **Bước 2** (admin only): Nhập mật khẩu → `POST /api/auth/login` → JWT lưu `localStorage` → redirect `/`.
+Bước 1: nhập SĐT → check-phone. Bước 2 (nếu editor/admin): nhập mật khẩu → login → JWT.
 
 ---
 
 ## REST API
 
 ### Auth
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | /api/auth/check-phone | — | {phone} → {role} — bước 1: xác nhận SĐT tồn tại |
-| POST | /api/auth/login | — | {phone, password?} → {token, role} — bước 2: cấp JWT |
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| POST | `/api/auth/check-phone` | — | `{phone}` → `{role}` |
+| POST | `/api/auth/login` | — | `{phone, password?}` → `{token, role, personName, personId}` |
 
 ### Persons
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | /api/persons | viewer+ | List all |
-| GET | /api/persons/:id | viewer+ | Single person |
-| GET | /api/persons/:id/relatives | viewer+ | Parents, children, spouse |
-| POST | /api/persons | admin | Create; upserts access_token if grant flag set |
-| PUT | /api/persons/:id | admin | Update; upserts access_token if grant flag set |
-| DELETE | /api/persons/:id | admin | Delete person + relationships |
-| POST | /api/persons/:id/avatar | admin | Upload avatar image |
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| GET | `/api/persons` | viewer+ | List all, sorted by generation + name |
+| GET | `/api/persons/:id` | viewer+ | Single person |
+| GET | `/api/persons/:id/relatives` | viewer+ | `{parents, children, spouses}` |
+| GET | `/api/persons/:id/access` | editor+ | `{hasAccess, role}` |
+| POST | `/api/persons` | editor+ | Create; upserts access_token nếu có grant |
+| PUT | `/api/persons/:id` | editor+ | Update; editor không sửa được quyền admin/editor |
+| DELETE | `/api/persons/:id` | admin | Xóa person + cascade |
+| POST | `/api/persons/:id/avatar` | editor+ | Multipart; max 5MB; chỉ image/* |
 
 ### Relationships
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | /api/relationships | admin | Create parent_child or spouse |
-| DELETE | /api/relationships/:id | admin | Remove relationship |
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| POST | `/api/relationships` | editor+ | `{personAId, personBId, type}` |
+| DELETE | `/api/relationships/:id` | editor+ | |
 
 ### Tree
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | /api/tree | viewer+ | Full tree: nodes + edges with dagre x/y coordinates pre-calculated |
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| GET | `/api/tree` | viewer+ | `{nodes, edges}` — tọa độ đã tính sẵn |
+
+### Stats
+| Method | Path | Auth | Mô tả |
+|--------|------|------|-------|
+| GET | `/api/stats` | — | `{totalVisits, onlineNow}` |
+| POST | `/api/stats/ping` | viewer+ | Heartbeat; body `{newVisit: true}` lần đầu |
+| POST | `/api/stats/leave` | viewer+ | Đánh dấu offline |
 
 ---
 
-## Tree Layout Algorithm
+## Thuật toán layout cây (`treeLayout.ts`)
 
-`GET /api/tree` builds the VueFlow graph server-side:
-1. Fetch all persons + relationships from DB
-2. For each spouse pair, create a virtual `spouseConnector` node positioned at midpoint
-3. Run **dagre** (`rankdir: TB`) to assign x/y to all nodes
-4. Return `{ nodes: [...], edges: [...] }` ready for VueFlow
+### Vấn đề cần giải
+- Nhiều cụm gia đình không liên quan nhau → dagre đặt tất cả về gần (0,0) → chồng lấn
+- Vợ/chồng cần đứng cạnh nhau → điều chỉnh sau dagre làm chồng lấn với node khác
+
+### Giải pháp
+
+**1. Union-Find (connected components)**
+Nhóm tất cả người có quan hệ (bất kỳ loại) vào cùng một component. Mỗi component layout độc lập.
+
+**2. Virtual couple node**
+Thay vì đặt vợ/chồng riêng lẻ rồi điều chỉnh sau, tạo 1 node rộng gấp đôi cho dagre:
+```
+COUPLE_DAGRE_WIDTH = NODE_WIDTH × 2 + CONNECTOR_WIDTH + 2 × SPOUSE_CONN_GAP
+                   = 230 × 2 + 30 + 2 × 10 = 510px
+```
+Dagre thấy cặp vợ chồng như 1 khối, đặt con cái chính xác bên dưới. Sau layout, tách node đôi thành 2 vị trí person (trái/phải).
+
+**3. Dagre per-cluster**
+```
+g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 80, marginx: 40, marginy: 40 })
+```
+Mỗi cụm chạy dagre riêng → không bao giờ bị ảnh hưởng bởi cụm khác.
+
+**4. Cluster packing**
+Xếp các cụm theo thứ tự giảm dần kích thước (lớn trước), từ trái sang phải, xuống hàng khi vượt `MAX_ROW_WIDTH = 3000px`. Khoảng cách giữa cụm: 80px ngang, 100px dọc.
+
+**5. Family group node**
+Mỗi cụm ≥2 người → emit 1 node `familyGroup` ở bounding box + 24px padding. VueFlow render nó với `zIndex: −1`.
 
 ---
 
 ## Docker & Deployment
 
-### Local dev
-
-```bash
-docker-compose up
-# postgres:  localhost:5432
-# backend:   http://localhost:3000
-```
-
-`docker-compose.yml` chạy hai service: `postgres:16-alpine` và `backend` (port 3000). Frontend chạy riêng bằng `npm run dev` trong `frontend/`.
-
----
-
-### Production — một image duy nhất
-
-Không có nginx. Express vừa serve API lẫn static files của Vue.
+### Production image (single container)
+Express vừa serve API lẫn Vue static files (không có nginx riêng).
 
 ```
-Dockerfile (3 stage)
-│
+Dockerfile (3 stage):
 ├── Stage 1 — frontend-build (node:20-alpine)
-│   WORKDIR /app/frontend
-│   npm ci + vite build
-│   Output: /app/frontend/dist/
+│   └── npm ci + vite build → /app/frontend/dist/
 │
 ├── Stage 2 — backend-build (node:20-alpine)
-│   WORKDIR /app
-│   npm ci + prisma generate + tsc
-│   tsconfig rootDir = "./"  ← bao gồm cả prisma/seed.ts
-│   Output: /app/dist/src/server.js
-│           /app/dist/prisma/seed.js
+│   └── npm ci + prisma generate + tsc → /app/dist/src/, /app/dist/prisma/
+│       (rootDir: "./" để compile cả prisma/seed.ts)
 │
 └── Stage 3 — production (node:20-alpine)
-    apk add openssl          ← bắt buộc để Prisma migrate chạy được
-    COPY node_modules  ./node_modules
-    COPY dist/         ./dist          ← compiled backend (dist/src/*)
-    COPY prisma/       ./prisma        ← schema + migrations
-    COPY frontend/dist ./public        ← built Vue app
-    EXPOSE 3000
-    CMD: npx prisma migrate deploy && node dist/src/server.js
+    ├── apk add openssl (Prisma cần để chạy migrate)
+    ├── COPY node_modules, dist/, prisma/, frontend/dist/ → ./public
+    ├── EXPOSE 3000
+    └── CMD: npx prisma migrate deploy && node dist/src/server.js
 ```
 
-**Lưu ý quan trọng về đường dẫn:**
-- `tsconfig.json` có `rootDir: "./"` (không phải `"./src"`) để TypeScript compile cả `prisma/seed.ts`.
-- Vì vậy output nằm ở `dist/src/` chứ không phải `dist/` trực tiếp.
-- `app.ts` dùng `path.join(__dirname, '../../public')` (lên 2 cấp từ `dist/src/`) để tìm đúng thư mục static.
+**Lưu ý đường dẫn:** `rootDir: "./"` → output ở `dist/src/` (không phải `dist/`). `app.ts` dùng `path.join(__dirname, '../../public')`.
 
-**Khi container start:**
-1. `npx prisma migrate deploy` — chạy migration mới (nếu có) trước khi server lên
-2. `node dist/src/server.js` — khởi động Express
-
----
-
-### fly.io config (`fly.toml`)
-
+### fly.io
 | Key | Giá trị |
-|---|---|
+|-----|---------|
 | app | `justinlam-familytree` |
 | region | `sin` (Singapore) |
 | internal_port | `3000` |
-| volume mount | `uploads` → `/data/uploads` (avatar storage) |
-| auto_stop | `true` (tắt khi không có traffic) |
-| DATABASE_URL | fly secret (tự inject khi `postgres attach`) |
-| JWT_SECRET | fly secret (set thủ công) |
+| volume | `uploads` → `/data/uploads` |
+| auto_stop | `true` |
 
----
-
-### CI/CD — GitHub Actions
-
+### CI/CD
 ```
-push to main
-→ actions/checkout@v5
-→ superfly/flyctl-actions/setup-flyctl@master
-→ flyctl deploy --remote-only   (build image trên fly builder, không build local)
+push main → actions/checkout + superfly/flyctl-actions → flyctl deploy --remote-only
 ```
-
-Secret cần set trong GitHub repo: `FLY_API_TOKEN`
-
----
-
-### Seed data (chạy một lần sau deploy đầu tiên)
-
-```bash
-flyctl ssh console --app justinlam-familytree -C "node dist/prisma/seed.js"
-```
-
-Seed file được compile từ `backend/prisma/seed.ts` → `dist/prisma/seed.js`.
+Secret GitHub: `FLY_API_TOKEN`
 
 ---
 
-## Data Migration
+## Quy tắc phân quyền chi tiết
 
-`backend/prisma/seed.ts` imports all family data from the original `treant-js` collapsable example (the Lâm family: Thúi, Tiếu, Liếu, Lăng, Măng, Non, Nước, Đẹp, Pha, Qua and their descendants). Run once after first deploy: `npx prisma db seed`.
-
----
-
-## Access Control Summary
-
-| Action | Requires |
-|---|---|
-| View family tree | Valid phone in access_tokens (any role) |
-| View person detail | viewer+ |
-| Add / edit / delete person | admin role |
-| Add / delete relationship | admin role |
-| Grant access when saving person | admin role |
+| Tình huống | Hành vi |
+|-----------|---------|
+| Editor POST/PUT person có `grantAccess: true` | Backend force `grantRole = 'viewer'`, xóa `grantPassword` |
+| Editor PUT person đã có role editor/admin | Backend xóa toàn bộ grant fields (không cho chạm) |
+| Editor/Admin self-edit | Frontend lock role dropdown, chỉ hiện input mật khẩu (optional) |
+| Admin POST/PUT | Toàn quyền grant viewer/editor/admin + password |
+| Admin DELETE | Cascade xóa person + relationships (Prisma cascade) |
