@@ -135,12 +135,36 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     maxTreeY = Math.max(maxTreeY, y + NODE_HEIGHT);
   }
 
-  // Place isolated persons (no relationships yet) in a row below the tree
+  // Place isolated persons grouped by computed generation, centered under the main tree
   const isolated = persons.filter(p => !nodesWithEdges.has(p.id));
   if (isolated.length > 0) {
-    const rowY = maxTreeY > 0 ? maxTreeY + 80 : 40;
-    isolated.forEach((p, i) => {
-      personPositions.set(p.id, { x: 40 + i * (NODE_WIDTH + 20), y: rowY });
+    const byGen = new Map<number, Person[]>();
+    for (const p of isolated) {
+      const gen = computedGen.get(p.id) ?? p.generation;
+      if (!byGen.has(gen)) byGen.set(gen, []);
+      byGen.get(gen)!.push(p);
+    }
+    const sortedGens = [...byGen.keys()].sort((a, b) => a - b);
+
+    let treeMinX = Infinity, treeMaxX = -Infinity;
+    for (const pos of personPositions.values()) {
+      treeMinX = Math.min(treeMinX, pos.x);
+      treeMaxX = Math.max(treeMaxX, pos.x + NODE_WIDTH);
+    }
+    const treeCenterX = treeMinX < Infinity ? (treeMinX + treeMaxX) / 2 : null;
+
+    const startY = maxTreeY > 0 ? maxTreeY + 100 : 40;
+    sortedGens.forEach((gen, row) => {
+      const rowPersons = byGen.get(gen)!;
+      const rowWidth = rowPersons.length * (NODE_WIDTH + 20) - 20;
+      const cx = treeCenterX ?? (40 + rowWidth / 2);
+      const rowStartX = Math.max(40, cx - rowWidth / 2);
+      rowPersons.forEach((p, col) => {
+        personPositions.set(p.id, {
+          x: rowStartX + col * (NODE_WIDTH + 20),
+          y: startY + row * (NODE_HEIGHT + 80),
+        });
+      });
     });
   }
 

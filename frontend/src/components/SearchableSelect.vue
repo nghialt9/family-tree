@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 interface Opt { value: string; label: string; }
 
@@ -51,6 +51,14 @@ const query = ref('');
 const open = ref(false);
 const highlightIdx = ref(0);
 const listStyle = ref<Record<string, string>>({});
+
+function removeAccents(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd');
+}
+
+function normalize(s: string): string {
+  return removeAccents(s.toLowerCase().trim());
+}
 
 function labelOf(val: string) {
   return props.options.find(o => o.value === val)?.label ?? '';
@@ -66,11 +74,11 @@ watch(() => props.options, () => {
 });
 
 const filtered = computed(() => {
-  const q = query.value.toLowerCase().trim();
-  // If query is the currently selected label, show all so user can change
-  if (props.modelValue && q === labelOf(props.modelValue).toLowerCase()) return props.options;
+  const q = normalize(query.value);
+  // If query matches the current selection exactly, show all options
+  if (props.modelValue && q === normalize(labelOf(props.modelValue))) return props.options;
   if (!q) return props.options;
-  return props.options.filter(o => o.label.toLowerCase().includes(q));
+  return props.options.filter(o => normalize(o.label).includes(q));
 });
 
 function updatePosition() {
