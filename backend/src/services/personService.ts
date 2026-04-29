@@ -61,9 +61,9 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
       where: { id },
       data: {
         ...personData,
-        isAlive: personData.deathDate ? false : undefined,
-        birthDate: personData.birthDate ? new Date(personData.birthDate) : undefined,
-        deathDate: personData.deathDate ? new Date(personData.deathDate) : undefined,
+        isAlive: !personData.deathDate,
+        birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
+        deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
       },
     });
 
