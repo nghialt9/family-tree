@@ -244,7 +244,8 @@ watch(() => props.editPerson, async (p) => {
     }
     if (aResult.status === 'fulfilled' && aResult.value?.data?.hasAccess) {
       const existingRole = aResult.value.data.role;
-      if (isAdmin.value || existingRole === 'viewer') {
+      // Always show own access info; for others only show if admin or existing role is viewer
+      if (isSelfEdit.value || isAdmin.value || existingRole === 'viewer') {
         form.value.grantAccess = true;
         form.value.grantRole = existingRole;
       }
