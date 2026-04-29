@@ -6,8 +6,12 @@ const NODE_HEIGHT = 120;
 const CONNECTOR_WIDTH = 30;
 const CONNECTOR_HEIGHT = 30;
 const SPOUSE_CONN_GAP = 10;
-const COMP_GAP_X = 80;  // horizontal gap between family clusters
-const COMP_GAP_Y = 100; // vertical gap between rows of clusters
+// A couple shares one wide dagre node so dagre treats them as a unit.
+// Width = left-person + gap + connector + gap + right-person
+const COUPLE_DAGRE_WIDTH = NODE_WIDTH * 2 + CONNECTOR_WIDTH + 2 * SPOUSE_CONN_GAP;
+
+const COMP_GAP_X = 80;
+const COMP_GAP_Y = 100;
 const MAX_ROW_WIDTH = 3000;
 
 export interface TreeNode {
@@ -46,8 +50,13 @@ function findComponents(personIds: string[], relationships: Relationship[]): Map
   return new Map(personIds.map(id => [id, find(id)]));
 }
 
-// Layout one connected family cluster with its own dagre instance.
-// Returns positions relative to (0,0) plus the bounding box.
+/**
+ * Layout one connected family cluster.
+ *
+ * Key idea: each married couple becomes a single wide dagre node (COUPLE_DAGRE_WIDTH).
+ * Dagre therefore treats the couple as one unit and places their children correctly
+ * beneath them — no post-layout position adjustment, no overlap introduced.
+ */
 function layoutCluster(
   persons: Person[],
   spouseRels: Relationship[],
@@ -60,26 +69,48 @@ function layoutCluster(
 } {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 80, marginx: 40, marginy: 40 });
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 80, marginx: 40, marginy: 40 });
 
-  // Only person nodes — connector nodes in dagre create extra ranks and break layout
-  for (const p of persons) {
-    g.setNode(p.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-  }
+  const visualEdges: TreeEdge[] = [];
 
-  // Build connector map (visual only, never added to dagre)
-  const connectorMap = new Map<string, string>();   // sorted-key → connId
+  // Build connector map
+  const connectorMap = new Map<string, string>();          // sortedKey → connId
   const connectorPersons = new Map<string, [string, string]>(); // connId → [pA, pB]
+  const connectorToCoupleNode = new Map<string, string>(); // connId → dagreCoupleNodeId
+
   for (const rel of spouseRels) {
     const key = [rel.personAId, rel.personBId].sort().join('-');
     if (!connectorMap.has(key)) {
       const connId = `connector-${key}`;
       connectorMap.set(key, connId);
       connectorPersons.set(connId, [rel.personAId, rel.personBId]);
+      connectorToCoupleNode.set(connId, `couple-${key}`);
     }
   }
 
-  const visualEdges: TreeEdge[] = [];
+  // Map each person to their dagre node id.
+  // Coupled persons share a wide couple node; singles use their own id.
+  // If a person is in multiple couples (remarried), we take the first couple encountered.
+  const personToDagreNode = new Map<string, string>();
+  for (const [connId, [pA, pB]] of connectorPersons) {
+    const coupleId = connectorToCoupleNode.get(connId)!;
+    if (!personToDagreNode.has(pA)) personToDagreNode.set(pA, coupleId);
+    if (!personToDagreNode.has(pB)) personToDagreNode.set(pB, coupleId);
+  }
+  for (const p of persons) {
+    if (!personToDagreNode.has(p.id)) personToDagreNode.set(p.id, p.id);
+  }
+
+  // Add dagre nodes (couple nodes are wide; single person nodes are standard width)
+  const addedDagreNodes = new Set<string>();
+  for (const p of persons) {
+    const dagreId = personToDagreNode.get(p.id)!;
+    if (!addedDagreNodes.has(dagreId)) {
+      addedDagreNodes.add(dagreId);
+      const isCoupleNode = dagreId !== p.id;
+      g.setNode(dagreId, { width: isCoupleNode ? COUPLE_DAGRE_WIDTH : NODE_WIDTH, height: NODE_HEIGHT });
+    }
+  }
 
   // Visual spouse edges: person → connector ← person
   for (const rel of spouseRels) {
@@ -97,80 +128,100 @@ function layoutCluster(
     }
   }
 
-  // Add direct parent→child edges to dagre (no connectors)
   const addedDagreEdges = new Set<string>();
   const addedVisualEdges = new Set<string>();
+
   for (const [childId, parentIds] of childParents) {
-    for (const parentId of parentIds) {
-      const dk = `${parentId}->${childId}`;
-      if (!addedDagreEdges.has(dk)) {
-        addedDagreEdges.add(dk);
-        g.setEdge(parentId, childId);
-      }
-    }
-    // Visual edge source: connector if couple known, else single parent
-    let sourceId: string;
+    const childDagreId = personToDagreNode.get(childId)!;
+
+    // Determine the dagre source and the visual edge source
+    let parentDagreId: string;
+    let visualSourceId: string;
+
     if (parentIds.length >= 2) {
-      const key = [...parentIds].sort().join('-');
-      sourceId = connectorMap.get(key) ?? parentIds[0];
+      const sortedKey = [...parentIds].sort().join('-');
+      const connId = connectorMap.get(sortedKey);
+      if (connId) {
+        // Both parents are a recognized couple
+        parentDagreId = connectorToCoupleNode.get(connId)!;
+        visualSourceId = connId; // visual edge from connector
+      } else {
+        // Two parents but not a couple — add edges from each parent individually
+        for (const pid of parentIds) {
+          const pDagre = personToDagreNode.get(pid)!;
+          if (pDagre !== childDagreId) {
+            const dk = `${pDagre}->${childDagreId}`;
+            if (!addedDagreEdges.has(dk)) { addedDagreEdges.add(dk); g.setEdge(pDagre, childDagreId); }
+          }
+          const vk = `${pid}->${childId}`;
+          if (!addedVisualEdges.has(vk)) {
+            addedVisualEdges.add(vk);
+            visualEdges.push({ id: `pc-${pid}-${childId}`, source: pid, target: childId, type: 'parentChild' });
+          }
+        }
+        continue; // skip the generic add below
+      }
     } else {
       const parentId = parentIds[0];
-      const spouseRel = spouseRels.find(s => s.personAId === parentId || s.personBId === parentId);
-      const connKey = spouseRel ? [spouseRel.personAId, spouseRel.personBId].sort().join('-') : null;
-      sourceId = (connKey && connectorMap.get(connKey)) ?? parentId;
+      parentDagreId = personToDagreNode.get(parentId)!;
+      // Visual edge always comes from the actual parent person (not connector)
+      // even when the parent is part of a couple — the other spouse isn't a parent here
+      visualSourceId = parentId;
     }
-    const vk = `${sourceId}->${childId}`;
+
+    if (parentDagreId !== childDagreId) {
+      const dk = `${parentDagreId}->${childDagreId}`;
+      if (!addedDagreEdges.has(dk)) { addedDagreEdges.add(dk); g.setEdge(parentDagreId, childDagreId); }
+    }
+
+    const vk = `${visualSourceId}->${childId}`;
     if (!addedVisualEdges.has(vk)) {
       addedVisualEdges.add(vk);
-      visualEdges.push({ id: `pc-${sourceId}-${childId}`, source: sourceId, target: childId, type: 'parentChild' });
+      visualEdges.push({ id: `pc-${visualSourceId}-${childId}`, source: visualSourceId, target: childId, type: 'parentChild' });
     }
   }
 
   dagre.layout(g);
 
-  // Collect dagre positions for person nodes
+  // Compute final person positions from their dagre nodes
   const nodePositions = new Map<string, { x: number; y: number }>();
+
+  // Couple nodes: split the wide node into left/right person positions
+  for (const [connId, [pA, pB]] of connectorPersons) {
+    const coupleId = connectorToCoupleNode.get(connId)!;
+    const node = g.node(coupleId);
+    if (!node) continue;
+    const left = node.x - node.width / 2;
+    const top  = node.y - NODE_HEIGHT / 2;
+    nodePositions.set(pA, { x: left, y: top });
+    nodePositions.set(pB, { x: left + NODE_WIDTH + CONNECTOR_WIDTH + 2 * SPOUSE_CONN_GAP, y: top });
+  }
+
+  // Single-person nodes
   for (const p of persons) {
-    const node = g.node(p.id);
-    if (node) nodePositions.set(p.id, { x: node.x - NODE_WIDTH / 2, y: node.y - NODE_HEIGHT / 2 });
+    if (!nodePositions.has(p.id)) {
+      const node = g.node(p.id);
+      if (node) nodePositions.set(p.id, { x: node.x - NODE_WIDTH / 2, y: node.y - NODE_HEIGHT / 2 });
+    }
   }
 
-  // Adjust spouse pairs to be adjacent, with connector between them
-  const adjustedPersons = new Set<string>();
-  for (const [, [pA, pB]] of connectorPersons) {
-    const nA = g.node(pA);
-    const nB = g.node(pB);
-    if (!nA || !nB || adjustedPersons.has(pA) || adjustedPersons.has(pB)) continue;
-    adjustedPersons.add(pA);
-    adjustedPersons.add(pB);
-
-    const cx = (nA.x + nB.x) / 2;
-    const [leftId, rightId] = nA.x <= nB.x ? [pA, pB] : [pB, pA];
-    const leftY  = (nA.x <= nB.x ? nA : nB).y - NODE_HEIGHT / 2;
-    const rightY = (nA.x <= nB.x ? nB : nA).y - NODE_HEIGHT / 2;
-    nodePositions.set(leftId,  { x: cx - NODE_WIDTH - CONNECTOR_WIDTH / 2 - SPOUSE_CONN_GAP, y: leftY });
-    nodePositions.set(rightId, { x: cx + CONNECTOR_WIDTH / 2 + SPOUSE_CONN_GAP, y: rightY });
-  }
-
-  // Connector positions based on final adjusted spouse positions
+  // Connector positions derived from final person positions
   const connectorNodes: Array<{ id: string; position: { x: number; y: number } }> = [];
   for (const [connId, [pA, pB]] of connectorPersons) {
     const posA = nodePositions.get(pA);
     const posB = nodePositions.get(pB);
     if (!posA || !posB) continue;
-    const [leftPos] = posA.x <= posB.x ? [posA, posB] : [posB, posA];
-    const connX = leftPos.x + NODE_WIDTH + SPOUSE_CONN_GAP;
+    const leftX = Math.min(posA.x, posB.x);
+    const connX = leftX + NODE_WIDTH + SPOUSE_CONN_GAP;
     const connY = Math.min(posA.y, posB.y) + (NODE_HEIGHT - CONNECTOR_HEIGHT) / 2;
     connectorNodes.push({ id: connId, position: { x: connX, y: connY } });
   }
 
-  // Compute bounding box over all nodes in this cluster
+  // Bounding box over all nodes in this cluster
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const pos of nodePositions.values()) {
-    minX = Math.min(minX, pos.x);
-    minY = Math.min(minY, pos.y);
-    maxX = Math.max(maxX, pos.x + NODE_WIDTH);
-    maxY = Math.max(maxY, pos.y + NODE_HEIGHT);
+    minX = Math.min(minX, pos.x);      minY = Math.min(minY, pos.y);
+    maxX = Math.max(maxX, pos.x + NODE_WIDTH); maxY = Math.max(maxY, pos.y + NODE_HEIGHT);
   }
   for (const cn of connectorNodes) {
     minX = Math.min(minX, cn.position.x);
@@ -185,12 +236,12 @@ function layoutCluster(
 export function buildTree(persons: Person[], relationships: Relationship[]): { nodes: TreeNode[]; edges: TreeEdge[] } {
   if (persons.length === 0) return { nodes: [], edges: [] };
 
-  const spouseRels = relationships.filter(r => r.type === 'spouse');
+  const spouseRels      = relationships.filter(r => r.type === 'spouse');
   const parentChildRels = relationships.filter(r => r.type === 'parent_child');
 
   // Compute generations via BFS (roots = persons with no parents → gen 1)
   const personChildrenMap = new Map<string, string[]>();
-  const personParentsMap = new Map<string, string[]>();
+  const personParentsMap  = new Map<string, string[]>();
   for (const rel of parentChildRels) {
     if (!personChildrenMap.has(rel.personAId)) personChildrenMap.set(rel.personAId, []);
     personChildrenMap.get(rel.personAId)!.push(rel.personBId);
@@ -206,7 +257,7 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     }
   }
   while (genQueue.length > 0) {
-    const id = genQueue.shift()!;
+    const id  = genQueue.shift()!;
     const gen = computedGen.get(id)!;
     for (const childId of personChildrenMap.get(id) ?? []) {
       if ((computedGen.get(childId) ?? 0) < gen + 1) {
@@ -219,16 +270,16 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
     if (!computedGen.has(p.id)) computedGen.set(p.id, 1);
   }
 
-  // Group persons into connected components (families)
+  // Group persons into connected components (families / clusters)
   const compMap = findComponents(persons.map(p => p.id), relationships);
   const componentGroups = new Map<string, Person[]>();
   for (const p of persons) {
-    const compId = compMap.get(p.id)!;
-    if (!componentGroups.has(compId)) componentGroups.set(compId, []);
-    componentGroups.get(compId)!.push(p);
+    const cid = compMap.get(p.id)!;
+    if (!componentGroups.has(cid)) componentGroups.set(cid, []);
+    componentGroups.get(cid)!.push(p);
   }
 
-  // Sort: largest families first, isolated singles last
+  // Sort: largest clusters first
   const sortedClusters = [...componentGroups.values()].sort((a, b) => b.length - a.length);
 
   const allNodes: TreeNode[] = [];
@@ -236,36 +287,34 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
   const personMap = new Map(persons.map(p => [p.id, p]));
 
   // Pack clusters left-to-right, wrapping into new rows when MAX_ROW_WIDTH exceeded
-  let curX = 40;
-  let curY = 40;
-  let rowMaxHeight = 0;
+  let curX = 40, curY = 40, rowMaxH = 0;
 
   for (const clusterPersons of sortedClusters) {
-    const clusterIds = new Set(clusterPersons.map(p => p.id));
+    const clusterIds        = new Set(clusterPersons.map(p => p.id));
     const clusterSpouseRels = spouseRels.filter(r => clusterIds.has(r.personAId) && clusterIds.has(r.personBId));
-    const clusterParentChildRels = parentChildRels.filter(r => clusterIds.has(r.personAId) && clusterIds.has(r.personBId));
+    const clusterPCRels     = parentChildRels.filter(r => clusterIds.has(r.personAId) && clusterIds.has(r.personBId));
 
-    const result = layoutCluster(clusterPersons, clusterSpouseRels, clusterParentChildRels);
+    const result   = layoutCluster(clusterPersons, clusterSpouseRels, clusterPCRels);
     const clusterW = result.bbox.maxX - result.bbox.minX;
     const clusterH = result.bbox.maxY - result.bbox.minY;
 
-    // Wrap to next row if this cluster doesn't fit
+    // Wrap to next row if this cluster doesn't fit horizontally
     if (curX > 40 && curX + clusterW > MAX_ROW_WIDTH) {
       curX = 40;
-      curY += rowMaxHeight + COMP_GAP_Y;
-      rowMaxHeight = 0;
+      curY += rowMaxH + COMP_GAP_Y;
+      rowMaxH = 0;
     }
 
-    // Translate all positions so this cluster's bbox origin lands at (curX, curY)
-    const offsetX = curX - result.bbox.minX;
-    const offsetY = curY - result.bbox.minY;
+    // Translate so that the cluster's bbox top-left lands at (curX, curY)
+    const ox = curX - result.bbox.minX;
+    const oy = curY - result.bbox.minY;
 
     for (const [id, pos] of result.nodePositions) {
       const p = personMap.get(id)!;
       allNodes.push({
         id,
         type: 'person',
-        position: { x: pos.x + offsetX, y: pos.y + offsetY },
+        position: { x: pos.x + ox, y: pos.y + oy },
         data: { ...p, generation: computedGen.get(id) ?? p.generation },
       });
     }
@@ -274,15 +323,15 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
       allNodes.push({
         id: cn.id,
         type: 'spouseConnector',
-        position: { x: cn.position.x + offsetX, y: cn.position.y + offsetY },
+        position: { x: cn.position.x + ox, y: cn.position.y + oy },
         data: {},
       });
     }
 
     allEdges.push(...result.visualEdges);
 
-    curX += clusterW + COMP_GAP_X;
-    rowMaxHeight = Math.max(rowMaxHeight, clusterH);
+    curX  += clusterW + COMP_GAP_X;
+    rowMaxH = Math.max(rowMaxH, clusterH);
   }
 
   return { nodes: allNodes, edges: allEdges };
