@@ -29,6 +29,7 @@ import { MiniMap } from '@vue-flow/minimap';
 import type { NodeMouseEvent } from '@vue-flow/core';
 import PersonNode from './PersonNode.vue';
 import SpouseConnector from './SpouseConnector.vue';
+import FamilyGroupNode from './FamilyGroupNode.vue';
 import { treeApi } from '../api';
 
 const props = defineProps<{ focusPersonId?: string | null }>();
@@ -54,6 +55,7 @@ const connectorParents = ref(new Map<string, string[]>());
 const nodeTypes = {
   person: markRaw(PersonNode),
   spouseConnector: markRaw(SpouseConnector),
+  familyGroup: markRaw(FamilyGroupNode),
 };
 
 // --- Relationship maps ---
@@ -147,6 +149,17 @@ function isHidden(id: string): boolean {
 
 const displayNodes = computed(() =>
   rawNodes.value.map(n => {
+    // Family group background panel — always visible, non-interactive, renders behind
+    if (n.type === 'familyGroup') {
+      return {
+        ...n,
+        zIndex: -1,
+        draggable: false,
+        selectable: false,
+        connectable: false,
+        focusable: false,
+      };
+    }
     if (n.type !== 'person') {
       return { ...n, hidden: isHidden(n.id) };
     }
@@ -226,6 +239,7 @@ defineExpose({ reload: loadTree });
 
 function onNodeClick(event: NodeMouseEvent) {
   if (event.node.type === 'person') emit('selectPerson', event.node.id);
+  // familyGroup and spouseConnector clicks are intentionally ignored
 }
 </script>
 

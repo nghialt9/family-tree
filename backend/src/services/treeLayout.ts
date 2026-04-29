@@ -16,9 +16,9 @@ const MAX_ROW_WIDTH = 3000;
 
 export interface TreeNode {
   id: string;
-  type: 'person' | 'spouseConnector';
+  type: 'person' | 'spouseConnector' | 'familyGroup';
   position: { x: number; y: number };
-  data: Partial<Person> & { label?: string };
+  data: Partial<Person> & { label?: string; width?: number; height?: number };
 }
 
 export interface TreeEdge {
@@ -286,8 +286,11 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
   const allEdges: TreeEdge[] = [];
   const personMap = new Map(persons.map(p => [p.id, p]));
 
+  const GROUP_PAD = 24; // padding around each family cluster background
+
   // Pack clusters left-to-right, wrapping into new rows when MAX_ROW_WIDTH exceeded
   let curX = 40, curY = 40, rowMaxH = 0;
+  let clusterIdx = 0;
 
   for (const clusterPersons of sortedClusters) {
     const clusterIds        = new Set(clusterPersons.map(p => p.id));
@@ -328,10 +331,21 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
       });
     }
 
+    // Background group node for clusters with ≥ 2 persons (single isolated nodes need no frame)
+    if (clusterPersons.length >= 2) {
+      allNodes.unshift({
+        id: `familygroup-${clusterIdx}`,
+        type: 'familyGroup',
+        position: { x: curX - GROUP_PAD, y: curY - GROUP_PAD },
+        data: { width: clusterW + GROUP_PAD * 2, height: clusterH + GROUP_PAD * 2 },
+      });
+    }
+
     allEdges.push(...result.visualEdges);
 
     curX  += clusterW + COMP_GAP_X;
     rowMaxH = Math.max(rowMaxH, clusterH);
+    clusterIdx++;
   }
 
   return { nodes: allNodes, edges: allEdges };
