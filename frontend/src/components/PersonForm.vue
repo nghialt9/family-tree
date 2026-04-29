@@ -99,23 +99,23 @@
           </select>
         </div>
 
-        <div v-if="form.phone && isAdmin" class="field full-width access-grant">
+        <div v-if="form.phone && isEditor" class="field full-width access-grant">
           <label class="checkbox-label">
             <input type="checkbox" v-model="form.grantAccess" />
             Cấp quyền truy cập cho số điện thoại này
           </label>
           <div v-if="form.grantAccess" class="grant-options">
-            <select v-model="form.grantRole">
+            <select v-model="form.grantRole" :disabled="!isAdmin">
               <option value="viewer">Viewer — chỉ xem</option>
-              <option value="editor">Editor — thêm & sửa</option>
-              <option value="admin">Admin — thêm/sửa/xóa</option>
+              <option v-if="isAdmin" value="editor">Editor — thêm & sửa</option>
+              <option v-if="isAdmin" value="admin">Admin — thêm/sửa/xóa</option>
             </select>
             <input
-              v-if="form.grantRole === 'admin' || form.grantRole === 'editor'"
+              v-if="isAdmin && (form.grantRole === 'admin' || form.grantRole === 'editor')"
               v-model="form.grantPassword"
               type="password"
               placeholder="Mật khẩu *"
-              :required="(form.grantRole === 'admin' || form.grantRole === 'editor') && form.grantAccess"
+              :required="isAdmin && (form.grantRole === 'admin' || form.grantRole === 'editor') && form.grantAccess"
             />
           </div>
         </div>
@@ -139,7 +139,7 @@ import { useAuthStore } from '../stores/auth';
 import AvatarCropper from './AvatarCropper.vue';
 
 const auth = useAuthStore();
-const { isAdmin } = storeToRefs(auth);
+const { isAdmin, isEditor } = storeToRefs(auth);
 
 const props = defineProps<{ editPerson?: any | null }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
@@ -197,7 +197,7 @@ watch(() => props.editPerson, async (p) => {
     };
     const [rResult, aResult] = await Promise.allSettled([
       personsApi.getRelatives(p.id),
-      isAdmin.value ? personsApi.getAccess(p.id) : Promise.resolve(null),
+      isEditor.value ? personsApi.getAccess(p.id) : Promise.resolve(null),
     ]);
     if (rResult.status === 'fulfilled' && rResult.value) {
       const rels = rResult.value.data;
@@ -219,8 +219,11 @@ watch(() => props.editPerson, async (p) => {
       };
     }
     if (aResult.status === 'fulfilled' && aResult.value?.data?.hasAccess) {
-      form.value.grantAccess = true;
-      form.value.grantRole = aResult.value.data.role;
+      const existingRole = aResult.value.data.role;
+      if (isAdmin.value || existingRole === 'viewer') {
+        form.value.grantAccess = true;
+        form.value.grantRole = existingRole;
+      }
     }
   } else {
     form.value = defaultForm();
@@ -290,9 +293,12 @@ async function handleSubmit() {
       nickname: form.value.nickname || undefined,
       address: form.value.address || undefined,
       bio: form.value.bio || undefined,
-      grantAccess: form.value.grantAccess,
-      grantRole: form.value.grantAccess ? form.value.grantRole : undefined,
-      grantPassword: (form.value.grantAccess && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor')) ? form.value.grantPassword : undefined,
+      // Admin: can grant/revoke any role. Editor: can only grant viewer (undefined = don't touch existing token).
+      grantAccess: isAdmin.value ? form.value.grantAccess : (form.value.grantAccess || undefined),
+      grantRole: form.value.grantAccess ? (isAdmin.value ? form.value.grantRole : 'viewer') : undefined,
+      grantPassword: (form.value.grantAccess && isAdmin.value && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor'))
+        ? form.value.grantPassword
+        : undefined,
     };
     let savedId: string;
     if (props.editPerson) {

@@ -44,7 +44,7 @@ export async function createPerson(input: CreatePersonInput & Record<string, unk
         create: { phone, role: grantRole, passwordHash, personId: person.id },
         update: { role: grantRole, ...(passwordHash ? { passwordHash } : {}), personId: person.id },
       });
-    } else if (!grantAccess && personData.phone) {
+    } else if (grantAccess === false && personData.phone) {
       // Admin explicitly unchecked grantAccess — revoke token for this person
       await tx.accessToken.deleteMany({ where: { personId: person.id } });
     }
@@ -79,7 +79,7 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
         create: { phone, role: grantRole, passwordHash, personId: person.id },
         update: { role: grantRole, ...(passwordHash ? { passwordHash } : {}), personId: person.id },
       });
-    } else if (!grantAccess && personData.phone) {
+    } else if (grantAccess === false && personData.phone) {
       // Admin explicitly unchecked grantAccess — revoke token for this person
       await tx.accessToken.deleteMany({ where: { personId: person.id } });
     }

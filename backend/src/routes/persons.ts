@@ -2,7 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
-import { requireViewer, requireEditor, requireAdmin } from '../middleware/auth';
+import { requireViewer, requireEditor, requireAdmin, AuthRequest } from '../middleware/auth';
 import { createPerson, updatePerson } from '../services/personService';
 import { prisma } from '../lib/prisma';
 
@@ -30,7 +30,7 @@ router.get('/:id', requireViewer, async (req, res) => {
   res.json(person);
 });
 
-router.get('/:id/access', requireAdmin, async (req, res) => {
+router.get('/:id/access', requireEditor, async (req, res) => {
   const token = await prisma.accessToken.findFirst({ where: { personId: req.params.id } });
   res.json({ hasAccess: !!token, role: token?.role ?? null });
 });
@@ -50,18 +50,28 @@ router.get('/:id/relatives', requireViewer, async (req, res) => {
   res.json({ parents, children, spouses });
 });
 
-router.post('/', requireEditor, async (req, res) => {
+router.post('/', requireEditor, async (req: AuthRequest, res) => {
   try {
-    const person = await createPerson(req.body);
+    const body = { ...req.body };
+    if (req.user!.role === 'editor' && body.grantAccess) {
+      body.grantRole = 'viewer';
+      delete body.grantPassword;
+    }
+    const person = await createPerson(body);
     res.status(201).json(person);
   } catch (e: any) {
     res.status(400).json({ error: e.message });
   }
 });
 
-router.put('/:id', requireEditor, async (req, res) => {
+router.put('/:id', requireEditor, async (req: AuthRequest, res) => {
   try {
-    const person = await updatePerson(req.params.id, req.body);
+    const body = { ...req.body };
+    if (req.user!.role === 'editor' && body.grantAccess) {
+      body.grantRole = 'viewer';
+      delete body.grantPassword;
+    }
+    const person = await updatePerson(req.params.id, body);
     res.json(person);
   } catch (e: any) {
     res.status(400).json({ error: e.message });
