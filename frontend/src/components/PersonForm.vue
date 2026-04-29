@@ -84,7 +84,7 @@
           <SearchableSelect v-model="form.spouseId" :options="spouseOptions" placeholder="-- Tìm tên vợ/chồng --" />
         </div>
 
-        <div v-if="form.phone && isEditor" class="field full-width access-grant">
+        <div v-if="form.phone && isEditor && canEditAccess" class="field full-width access-grant">
 
           <!-- Self-edit: role is locked, only password can change -->
           <template v-if="isSelfEdit">
@@ -180,6 +180,15 @@ const cropperSrc = ref('');
 const origRelIds = ref({ fatherRelId: '', motherRelId: '', spouseRelId: '' });
 const origPersonIds = ref({ fatherId: '', motherId: '', spouseId: '' });
 
+// Actual role from the API (set regardless of whether we pre-fill the form)
+const existingAccessRole = ref<string | null>(null);
+
+// Editor cannot touch access for persons who already have admin/editor roles
+const canEditAccess = computed(() => {
+  if (isSelfEdit.value || isAdmin.value) return true;
+  return !existingAccessRole.value || existingAccessRole.value === 'viewer';
+});
+
 const malePersons = computed(() =>
   allPersons.value.filter(p => p.id !== props.editPerson?.id && p.gender === 'male')
 );
@@ -210,6 +219,7 @@ watch(() => props.editPerson, async (p) => {
   avatarPreview.value = '';
   origRelIds.value = { fatherRelId: '', motherRelId: '', spouseRelId: '' };
   origPersonIds.value = { fatherId: '', motherId: '', spouseId: '' };
+  existingAccessRole.value = null;
   if (p) {
     form.value = {
       ...defaultForm(),
@@ -244,7 +254,8 @@ watch(() => props.editPerson, async (p) => {
     }
     if (aResult.status === 'fulfilled' && aResult.value?.data?.hasAccess) {
       const existingRole = aResult.value.data.role;
-      // Always show own access info; for others only show if admin or existing role is viewer
+      existingAccessRole.value = existingRole; // always capture, used by canEditAccess
+      // Pre-fill form: always for self-edit; admin can see all; editor only sees viewer
       if (isSelfEdit.value || isAdmin.value || existingRole === 'viewer') {
         form.value.grantAccess = true;
         form.value.grantRole = existingRole;

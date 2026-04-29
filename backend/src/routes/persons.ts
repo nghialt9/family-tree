@@ -68,8 +68,17 @@ router.put('/:id', requireEditor, async (req: AuthRequest, res) => {
   try {
     const body = { ...req.body };
     if (req.user!.role === 'editor' && body.grantAccess) {
-      body.grantRole = 'viewer';
-      delete body.grantPassword;
+      // Editors cannot touch admin/editor accounts — check existing token first
+      const existing = await prisma.accessToken.findFirst({ where: { personId: req.params.id } });
+      if (existing && existing.role !== 'viewer') {
+        // Strip access fields — editor has no permission to modify privileged accounts
+        delete body.grantAccess;
+        delete body.grantRole;
+        delete body.grantPassword;
+      } else {
+        body.grantRole = 'viewer';
+        delete body.grantPassword;
+      }
     }
     const person = await updatePerson(req.params.id, body);
     res.json(person);
