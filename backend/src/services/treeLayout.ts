@@ -117,11 +117,31 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
   }
 
   // Compute person positions from dagre, then adjust spouse pairs to be adjacent
+  // Dagre places isolated nodes (no edges) all at the same coordinates — handle separately.
+  const nodesWithEdges = new Set<string>();
+  for (const { v, w } of g.edges()) {
+    nodesWithEdges.add(v);
+    nodesWithEdges.add(w);
+  }
+
   const personPositions = new Map<string, { x: number; y: number }>();
+  let maxTreeY = 0;
   for (const p of persons) {
+    if (!nodesWithEdges.has(p.id)) continue;
     const node = g.node(p.id);
     if (!node) continue;
-    personPositions.set(p.id, { x: node.x - NODE_WIDTH / 2, y: node.y - NODE_HEIGHT / 2 });
+    const y = node.y - NODE_HEIGHT / 2;
+    personPositions.set(p.id, { x: node.x - NODE_WIDTH / 2, y });
+    maxTreeY = Math.max(maxTreeY, y + NODE_HEIGHT);
+  }
+
+  // Place isolated persons (no relationships yet) in a row below the tree
+  const isolated = persons.filter(p => !nodesWithEdges.has(p.id));
+  if (isolated.length > 0) {
+    const rowY = maxTreeY > 0 ? maxTreeY + 80 : 40;
+    isolated.forEach((p, i) => {
+      personPositions.set(p.id, { x: 40 + i * (NODE_WIDTH + 20), y: rowY });
+    });
   }
 
   const adjustedPersons = new Set<string>();

@@ -73,30 +73,15 @@
         <div class="section-title full-width">Quan hệ gia đình</div>
         <div class="field">
           <label>Cha</label>
-          <select v-model="form.fatherId">
-            <option value="">-- Không chọn --</option>
-            <option v-for="p in malePersons" :key="p.id" :value="p.id">
-              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · Gen {{ p.generation }}
-            </option>
-          </select>
+          <SearchableSelect v-model="form.fatherId" :options="fatherOptions" placeholder="-- Tìm tên cha --" />
         </div>
         <div class="field">
           <label>Mẹ</label>
-          <select v-model="form.motherId">
-            <option value="">-- Không chọn --</option>
-            <option v-for="p in femalePersons" :key="p.id" :value="p.id">
-              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · Gen {{ p.generation }}
-            </option>
-          </select>
+          <SearchableSelect v-model="form.motherId" :options="motherOptions" placeholder="-- Tìm tên mẹ --" />
         </div>
         <div class="field full-width">
           <label>Vợ / Chồng</label>
-          <select v-model="form.spouseId">
-            <option value="">-- Không chọn --</option>
-            <option v-for="p in otherPersons" :key="p.id" :value="p.id">
-              {{ p.fullName }}{{ p.nickname ? ` (${p.nickname})` : '' }} · {{ p.gender === 'male' ? 'Nam' : 'Nữ' }} · Gen {{ p.generation }}
-            </option>
-          </select>
+          <SearchableSelect v-model="form.spouseId" :options="spouseOptions" placeholder="-- Tìm tên vợ/chồng --" />
         </div>
 
         <div v-if="form.phone && isEditor" class="field full-width access-grant">
@@ -137,6 +122,7 @@ import { storeToRefs } from 'pinia';
 import { personsApi, relationshipsApi } from '../api';
 import { useAuthStore } from '../stores/auth';
 import AvatarCropper from './AvatarCropper.vue';
+import SearchableSelect from './SearchableSelect.vue';
 
 const auth = useAuthStore();
 const { isAdmin, isEditor } = storeToRefs(auth);
@@ -175,6 +161,16 @@ const femalePersons = computed(() =>
 const otherPersons = computed(() =>
   allPersons.value.filter(p => p.id !== props.editPerson?.id)
 );
+
+function personLabel(p: any) {
+  return `${p.fullName}${p.nickname ? ` (${p.nickname})` : ''} · Gen ${p.generation}`;
+}
+const fatherOptions = computed(() => malePersons.value.map(p => ({ value: p.id, label: personLabel(p) })));
+const motherOptions = computed(() => femalePersons.value.map(p => ({ value: p.id, label: personLabel(p) })));
+const spouseOptions = computed(() => otherPersons.value.map(p => ({
+  value: p.id,
+  label: `${p.fullName}${p.nickname ? ` (${p.nickname})` : ''} · ${p.gender === 'male' ? 'Nam' : 'Nữ'} · Gen ${p.generation}`,
+})));
 
 onMounted(async () => {
   const res = await personsApi.list();
