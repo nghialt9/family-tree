@@ -1,7 +1,7 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
-      <h2>{{ editPerson ? 'Sửa thông tin' : 'Thêm người mới' }}</h2>
+      <h2>{{ editPerson ? 'Sửa thông tin' : preRelationTitle }}</h2>
 
       <form @submit.prevent="handleSubmit" class="form-grid">
 
@@ -73,15 +73,18 @@
         <div class="section-title full-width">Quan hệ gia đình</div>
         <div class="field">
           <label>Cha</label>
-          <SearchableSelect v-model="form.fatherId" :options="fatherOptions" placeholder="-- Tìm tên cha --" />
+          <div v-if="isLockedFather" class="locked-field">🔒 {{ preRelation?.personName }}</div>
+          <SearchableSelect v-else v-model="form.fatherId" :options="fatherOptions" placeholder="-- Tìm tên cha --" />
         </div>
         <div class="field">
           <label>Mẹ</label>
-          <SearchableSelect v-model="form.motherId" :options="motherOptions" placeholder="-- Tìm tên mẹ --" />
+          <div v-if="isLockedMother" class="locked-field">🔒 {{ preRelation?.personName }}</div>
+          <SearchableSelect v-else v-model="form.motherId" :options="motherOptions" placeholder="-- Tìm tên mẹ --" />
         </div>
         <div class="field full-width">
           <label>Vợ / Chồng</label>
-          <SearchableSelect v-model="form.spouseId" :options="spouseOptions" placeholder="-- Tìm tên vợ/chồng --" />
+          <div v-if="isLockedSpouse" class="locked-field">🔒 {{ preRelation?.personName }}</div>
+          <SearchableSelect v-else v-model="form.spouseId" :options="spouseOptions" placeholder="-- Tìm tên vợ/chồng --" />
         </div>
 
         <div v-if="form.phone && isEditor && canEditAccess" class="field full-width access-grant">
@@ -155,8 +158,23 @@ function roleLabel(r: string) {
   return 'Viewer — chỉ xem';
 }
 
-const props = defineProps<{ editPerson?: any | null }>();
+const props = defineProps<{
+  editPerson?: any | null;
+  preRelation?: { type: 'asChildOf' | 'asSpouseOf' | 'asParentOf'; personId: string; personName: string; personGender: 'male' | 'female' } | null;
+}>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'saved'): void }>();
+
+const preRelationTitle = computed(() => {
+  const r = props.preRelation;
+  if (!r) return 'Thêm người mới';
+  if (r.type === 'asChildOf') return `Thêm con của ${r.personName}`;
+  if (r.type === 'asSpouseOf') return `Thêm vợ/chồng của ${r.personName}`;
+  return `Thêm cha/mẹ của ${r.personName}`;
+});
+
+const isLockedFather = computed(() => props.preRelation?.type === 'asChildOf' && props.preRelation.personGender === 'male');
+const isLockedMother = computed(() => props.preRelation?.type === 'asChildOf' && props.preRelation.personGender === 'female');
+const isLockedSpouse = computed(() => props.preRelation?.type === 'asSpouseOf');
 
 const defaultForm = () => ({
   fullName: '', nickname: '', gender: 'male' as 'male' | 'female',
@@ -263,6 +281,15 @@ watch(() => props.editPerson, async (p) => {
     }
   } else {
     form.value = defaultForm();
+    const rel = props.preRelation;
+    if (rel) {
+      if (rel.type === 'asChildOf') {
+        if (rel.personGender === 'male') form.value.fatherId = rel.personId;
+        else form.value.motherId = rel.personId;
+      } else if (rel.type === 'asSpouseOf') {
+        form.value.spouseId = rel.personId;
+      }
+    }
   }
 }, { immediate: true });
 
@@ -367,6 +394,9 @@ async function handleSubmit() {
       await personsApi.uploadAvatar(savedId, avatarFile.value);
     }
     await handleRelationships(savedId);
+    if (!props.editPerson && props.preRelation?.type === 'asParentOf') {
+      await relationshipsApi.create({ personAId: savedId, personBId: props.preRelation.personId, type: 'parent_child' });
+    }
     emit('saved');
   } catch (e: any) {
     error.value = e.response?.data?.error || 'Lỗi khi lưu.';
@@ -386,6 +416,7 @@ h2 { margin-bottom: 20px; font-size: 1.1rem; color: #24292f; font-weight: 700; }
 .section-title { font-size: 11px; font-weight: 600; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 8px; border-top: 1px solid #d0d7de; margin-top: 4px; }
 label { font-size: 12px; color: #57606a; font-weight: 500; }
 input, select, textarea { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 8px 10px; color: #24292f; font-size: 13px; width: 100%; box-sizing: border-box; }
+.locked-field { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 7px 10px; font-size: 13px; color: #57606a; }
 input:focus, select:focus, textarea:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
 textarea { resize: vertical; }
 

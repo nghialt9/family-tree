@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, markRaw, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, markRaw, nextTick, readonly } from 'vue';
 import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -199,6 +199,13 @@ const displayEdges = computed(() =>
 
 function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
 
+function focusOnNode(id: string) {
+  const target = rawNodes.value.find(n => n.type === 'person' && n.id === id);
+  if (target) setCenter(target.position.x + 115, target.position.y + 60, { zoom: 1.2, duration: 600 });
+}
+
+const personNodes = computed(() => rawNodes.value.filter(n => n.type === 'person'));
+
 function focusOnPerson() {
   const focusId = props.focusPersonId;
   if (focusId) {
@@ -235,7 +242,7 @@ async function loadTree() {
 }
 
 onMounted(loadTree);
-defineExpose({ reload: loadTree });
+defineExpose({ reload: loadTree, focusOnNode, personNodes: readonly(personNodes) });
 
 function onNodeClick(event: NodeMouseEvent) {
   if (event.node.type === 'person') emit('selectPerson', event.node.id);

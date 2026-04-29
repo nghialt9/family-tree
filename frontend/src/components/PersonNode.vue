@@ -6,7 +6,7 @@
     <div class="card-body">
       <div class="avatar">
         <img v-if="data.avatarUrl" :src="data.avatarUrl + '?v=' + new Date(data.updatedAt || 0).getTime()" :alt="data.fullName" />
-        <span v-else>{{ data.gender === 'female' ? '👩' : '👨' }}</span>
+        <div v-else class="avatar-initials" :style="{ background: avatarBg }">{{ initials }}</div>
       </div>
       <div class="info">
         <div class="gen-badge">Thế hệ {{ data.generation }}</div>
@@ -32,13 +32,28 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 
-defineProps<{ data: Record<string, any> }>();
+const props = defineProps<{ data: Record<string, any> }>();
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('vi-VN');
 }
+
+const initials = computed(() => {
+  const parts = (props.data.fullName ?? '').trim().split(/\s+/);
+  if (parts.length === 1) return (parts[0][0] ?? '?').toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+});
+
+const avatarBg = computed(() => {
+  const seed = props.data.id ?? props.data.fullName ?? '';
+  const colors = ['#0969da', '#2da44e', '#9a3ecb', '#bc4c00', '#1b7c83', '#8250df'];
+  let h = 0;
+  for (const c of seed) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
+  return colors[h % colors.length];
+});
 </script>
 
 <style scoped>
@@ -60,13 +75,18 @@ function formatDate(d: string) {
 
 .avatar { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .avatar img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid #d0d7de; }
-.avatar span { font-size: 44px; line-height: 1; }
+.avatar-initials {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 20px; font-weight: 700; letter-spacing: -0.5px;
+  user-select: none; flex-shrink: 0;
+}
 
 .info { flex: 1; min-width: 0; padding-top: 1px; }
 .gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 1px 7px; font-size: 10px; display: inline-block; margin-bottom: 2px; font-weight: 600; }
 .name { font-weight: 700; font-size: 13px; color: #24292f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nickname { color: #57606a; font-size: 11px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.detail { color: #57606a; font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nickname { color: #444c56; font-size: 11px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.detail { color: #444c56; font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .deceased-tag { color: #cf222e; }
 
 .actions { margin-top: 5px; display: flex; }

@@ -56,6 +56,15 @@
             </div>
           </div>
 
+          <div v-if="isEditor" class="quick-add-section">
+            <h3>Thêm người quan hệ</h3>
+            <div class="quick-add-btns">
+              <button class="btn-quick" @click="addRelative('asChildOf')">+ Thêm con</button>
+              <button class="btn-quick" @click="addRelative('asSpouseOf')">+ Thêm vợ/chồng</button>
+              <button class="btn-quick" @click="addRelative('asParentOf')">+ Thêm cha/mẹ</button>
+            </div>
+          </div>
+
           <div v-if="isEditor" class="admin-actions">
             <button class="btn-edit" @click="$emit('editPerson', person)">✏️ Sửa</button>
             <button v-if="isAdmin" class="btn-delete" @click="handleDelete">🗑️ Xóa</button>
@@ -78,6 +87,7 @@ const emit = defineEmits<{
   (e: 'selectPerson', id: string): void;
   (e: 'editPerson', person: any): void;
   (e: 'deleted'): void;
+  (e: 'addRelative', data: { type: string; personId: string; personName: string; personGender: string }): void;
 }>();
 
 const auth = useAuthStore();
@@ -100,6 +110,11 @@ watch(
     }
   }
 );
+
+function addRelative(type: string) {
+  if (!person.value) return;
+  emit('addRelative', { type, personId: person.value.id, personName: person.value.fullName, personGender: person.value.gender });
+}
 
 async function handleDelete() {
   if (!person.value || !confirm(`Xóa ${person.value.fullName}?`)) return;
@@ -133,7 +148,11 @@ h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
 .bio-section p { font-size: 13px; color: #24292f; line-height: 1.6; }
 .rel-btn { background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin: 0 4px 4px 0; }
 .rel-btn:hover { background: #ddf4ff; border-color: #54aeff; }
-.admin-actions { margin-top: 24px; display: flex; gap: 10px; }
+.quick-add-section { margin-top: 20px; }
+.quick-add-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.btn-quick { background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 5px 11px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
+.btn-quick:hover { background: #ddf4ff; border-color: #54aeff; }
+.admin-actions { margin-top: 16px; display: flex; gap: 10px; }
 .btn-edit { flex: 1; padding: 10px; background: #f6f8fa; border: 1px solid #d0d7de; color: #24292f; border-radius: 6px; cursor: pointer; font-weight: 500; }
 .btn-edit:hover { background: #eaeef2; }
 .btn-delete { flex: 1; padding: 10px; background: #fff0ee; border: 1px solid #ffcecb; color: #cf222e; border-radius: 6px; cursor: pointer; font-weight: 500; }

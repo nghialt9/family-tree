@@ -35,7 +35,8 @@
       "Bash(git push *)",
       "Bash(xargs wc *)",
       "Bash(./node_modules/.bin/vue-tsc --noEmit)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node *)"
     ]
   }
 }
