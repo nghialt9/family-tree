@@ -11,8 +11,11 @@
       <div class="info">
         <div class="gen-badge">Thế hệ {{ data.generation }}</div>
         <div class="name">{{ data.fullName }}</div>
-        <div v-if="data.nickname" class="nickname">"{{ data.nickname }}"</div>
-        <div v-if="data.phone" class="detail">📞 {{ data.phone }}</div>
+        <div class="nickname-row">
+          <span v-if="data.nickname" class="nickname">"{{ data.nickname }}"</span>
+          <span v-if="data.familyCount > 1 && data.hasChildren" class="family-size">{{ data.familyCount }} người</span>
+        </div>
+        <a v-if="data.phone" :href="'tel:' + data.phone" class="detail phone-link" @click.stop>📞 {{ data.phone }}</a>
         <div v-if="data.birthDate" class="detail">🎂 {{ formatDate(data.birthDate) }}</div>
         <div v-if="data.deathDate" class="detail deceased-tag">✝ {{ formatDate(data.deathDate) }}</div>
       </div>
@@ -85,8 +88,12 @@ const avatarBg = computed(() => {
 .info { flex: 1; min-width: 0; padding-top: 1px; }
 .gen-badge { background: #ddf4ff; color: #0969da; border-radius: 10px; padding: 1px 7px; font-size: 10px; display: inline-block; margin-bottom: 2px; font-weight: 600; }
 .name { font-weight: 700; font-size: 13px; color: #24292f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nickname { color: #444c56; font-size: 11px; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.detail { color: #444c56; font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nickname-row { display: flex; align-items: center; gap: 4px; min-height: 14px; }
+.nickname { color: #444c56; font-size: 11px; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
+.family-size { font-size: 10px; color: #0969da; background: #ddf4ff; border-radius: 8px; padding: 0 5px; white-space: nowrap; flex-shrink: 0; }
+.detail { color: #444c56; font-size: 11px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.phone-link { text-decoration: none; }
+.phone-link:hover { color: #0969da; text-decoration: underline; }
 .deceased-tag { color: #cf222e; }
 
 .actions { margin-top: 5px; display: flex; }

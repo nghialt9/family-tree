@@ -18,7 +18,7 @@ export interface TreeNode {
   id: string;
   type: 'person' | 'spouseConnector' | 'familyGroup';
   position: { x: number; y: number };
-  data: Partial<Person> & { label?: string; width?: number; height?: number };
+  data: Partial<Person> & { label?: string; width?: number; height?: number; memberCount?: number; familyCount?: number };
 }
 
 export interface TreeEdge {
@@ -233,11 +233,60 @@ function layoutCluster(
   return { nodePositions, connectorNodes, visualEdges, bbox: { minX, minY, maxX, maxY } };
 }
 
+/**
+ * For each person, count how many people are in their "family subtree":
+ * themselves + their spouses + all descendants (recursively) + spouses of each descendant.
+ * This gives a decreasing count from older to younger generations.
+ */
+function computeFamilyCounts(
+  personIds: string[],
+  parentChildRels: Relationship[],
+  spouseRels: Relationship[],
+): Map<string, number> {
+  const childrenOf = new Map<string, string[]>();
+  for (const r of parentChildRels) {
+    if (!childrenOf.has(r.personAId)) childrenOf.set(r.personAId, []);
+    childrenOf.get(r.personAId)!.push(r.personBId);
+  }
+  const spousesOf = new Map<string, string[]>();
+  for (const r of spouseRels) {
+    if (!spousesOf.has(r.personAId)) spousesOf.set(r.personAId, []);
+    spousesOf.get(r.personAId)!.push(r.personBId);
+    if (!spousesOf.has(r.personBId)) spousesOf.set(r.personBId, []);
+    spousesOf.get(r.personBId)!.push(r.personAId);
+  }
+
+  const result = new Map<string, number>();
+  for (const personId of personIds) {
+    const all = new Set<string>();
+    const queue: string[] = [personId];
+    while (queue.length > 0) {
+      const cur = queue.shift()!;
+      if (all.has(cur)) continue;
+      all.add(cur);
+      for (const s of spousesOf.get(cur) ?? []) {
+        if (!all.has(s)) {
+          all.add(s);
+          for (const child of childrenOf.get(s) ?? []) {
+            if (!all.has(child)) queue.push(child);
+          }
+        }
+      }
+      for (const child of childrenOf.get(cur) ?? []) {
+        if (!all.has(child)) queue.push(child);
+      }
+    }
+    result.set(personId, all.size);
+  }
+  return result;
+}
+
 export function buildTree(persons: Person[], relationships: Relationship[]): { nodes: TreeNode[]; edges: TreeEdge[] } {
   if (persons.length === 0) return { nodes: [], edges: [] };
 
   const spouseRels      = relationships.filter(r => r.type === 'spouse');
   const parentChildRels = relationships.filter(r => r.type === 'parent_child');
+  const familyCounts    = computeFamilyCounts(persons.map(p => p.id), parentChildRels, spouseRels);
 
   // Compute generations via BFS (roots = persons with no parents → gen 1)
   const personChildrenMap = new Map<string, string[]>();
@@ -318,7 +367,7 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
         id,
         type: 'person',
         position: { x: pos.x + ox, y: pos.y + oy },
-        data: { ...p, generation: computedGen.get(id) ?? p.generation },
+        data: { ...p, generation: computedGen.get(id) ?? p.generation, familyCount: familyCounts.get(id) ?? 1 },
       });
     }
 
@@ -337,7 +386,7 @@ export function buildTree(persons: Person[], relationships: Relationship[]): { n
         id: `familygroup-${clusterIdx}`,
         type: 'familyGroup',
         position: { x: curX - GROUP_PAD, y: curY - GROUP_PAD },
-        data: { width: clusterW + GROUP_PAD * 2, height: clusterH + GROUP_PAD * 2 },
+        data: { width: clusterW + GROUP_PAD * 2, height: clusterH + GROUP_PAD * 2, memberCount: clusterPersons.length },
       });
     }
 

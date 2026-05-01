@@ -28,7 +28,10 @@
             </div>
             <div v-if="person.phone" class="info-row">
               <span class="icon">📞</span>
-              <div><div class="info-label">Điện thoại</div><div>{{ person.phone }}</div></div>
+              <div>
+                <div class="info-label">Điện thoại</div>
+                <a :href="'tel:' + person.phone" class="phone-link">{{ person.phone }}</a>
+              </div>
             </div>
             <div v-if="person.address" class="info-row">
               <span class="icon">📍</span>
@@ -141,6 +144,8 @@ h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
 .deceased-badge { background: #ffebe9; color: #cf222e; border-radius: 10px; padding: 2px 10px; font-size: 11px; }
 .info-section { margin: 16px 0; }
 .info-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; font-size: 13px; color: #24292f; }
+.phone-link { color: #0969da; text-decoration: none; }
+.phone-link:hover { text-decoration: underline; }
 .icon { font-size: 18px; }
 .info-label { font-size: 10px; color: #57606a; margin-bottom: 1px; }
 .bio-section { background: #f6f8fa; border-radius: 8px; padding: 12px; margin: 16px 0; border: 1px solid #d0d7de; }

@@ -3,7 +3,10 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-      <span class="app-title">🌳 Gia Phả Nhà Lâm</span>
+      <span class="app-title">
+        🌳 Gia Phả Nhà Lâm
+        <span v-if="totalPersonCount" class="title-count">· {{ totalPersonCount }} người</span>
+      </span>
 
       <div class="search-wrap">
         <input
@@ -37,9 +40,15 @@
         <span v-if="auth.personName || auth.userPhone" class="user-greeting">
           👤 {{ auth.personName ?? auth.userPhone }}
         </span>
-        <button v-if="isEditor" class="btn-add" @click="openAddForm">+ Thêm người</button>
+        <button v-if="isEditor" class="btn-add" @click="openAddForm">
+          <span class="btn-full">+ Thêm người</span>
+          <span class="btn-short">+</span>
+        </button>
         <span class="action-divider" />
-        <button class="btn-logout" @click="handleLogout">Đăng xuất</button>
+        <button class="btn-logout" @click="handleLogout">
+          <span class="btn-full">⏻ Đăng xuất</span>
+          <span class="btn-short">⏻</span>
+        </button>
       </div>
     </div>
 
@@ -138,6 +147,8 @@ function daysUntilNextOccurrence(month: number, day: number): number {
   return Math.round((target.getTime() - todayStart.getTime()) / 86400000);
 }
 
+const totalPersonCount = computed(() => canvasRef.value?.personNodes?.length ?? 0);
+
 const reminders = computed(() => {
   const nodes: any[] = canvasRef.value?.personNodes ?? [];
   const result: { type: 'birthday' | 'death'; person: any; daysUntil: number }[] = [];
@@ -227,6 +238,9 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 /* Toolbar */
 .toolbar { display: flex; align-items: center; padding: 0 20px; background: #ffffff; border-bottom: 1px solid #d0d7de; height: 52px; flex-shrink: 0; z-index: 10; gap: 12px; }
 .app-title { font-size: 1rem; font-weight: bold; color: #24292f; white-space: nowrap; flex-shrink: 0; }
+.title-count { font-size: 11px; font-weight: 400; color: #57606a; }
+.btn-full { }
+.btn-short { display: none; }
 
 .search-wrap { position: relative; flex-shrink: 0; }
 .search-input { height: 30px; padding: 0 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 13px; background: #f6f8fa; outline: none; width: 200px; }
@@ -248,8 +262,8 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 .user-greeting { font-size: 12px; color: #57606a; white-space: nowrap; }
 .btn-add { background: #2da44e; color: #fff; border: none; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; }
 .btn-add:hover { background: #2c974b; }
-.btn-logout { background: #f6f8fa; color: #57606a; border: 1px solid #d0d7de; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; }
-.btn-logout:hover { background: #eaeef2; }
+.btn-logout { background: #cf222e; color: #fff; border: 1px solid #a40e26; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; font-weight: 500; }
+.btn-logout:hover { background: #a40e26; }
 
 /* Reminder banner */
 .reminder-banner { background: linear-gradient(135deg, #fff8c5, #fffbe6); border-bottom: 1px solid #d4a72c; padding: 7px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
@@ -262,7 +276,8 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 
 /* Hero */
 .hero { background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%); border-bottom: 1px solid #d0d7de; padding: 14px 24px; flex-shrink: 0; }
-.hero-content h2 { font-size: 1rem; font-weight: 700; color: #0969da; margin-bottom: 4px; }
+.hero-content h2 { font-size: 1rem; font-weight: 700; color: #0969da; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.hero-count { font-size: 11px; font-weight: 500; color: #57606a; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 10px; padding: 1px 8px; }
 .hero-content p { font-size: 12px; color: #57606a; line-height: 1.5; margin: 0; max-width: 700px; }
 .hero-content em { font-style: normal; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 4px; padding: 0 4px; font-size: 11px; }
 
@@ -273,13 +288,19 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 /* Mobile */
 @media (max-width: 640px) {
   .toolbar { padding: 0 10px; gap: 6px; }
-  .app-title { font-size: 0.8rem; }
+  .app-title { font-size: 0.85rem; }
   .stats { display: none; }
   .user-greeting { display: none; }
-  .search-input { width: 110px; font-size: 12px; }
+  .search-input { width: 100px; font-size: 12px; }
   .search-dropdown { width: 240px; }
-  .btn-add { padding: 6px 10px; font-size: 12px; }
-  .btn-logout { padding: 6px 10px; font-size: 12px; }
+  .toolbar-actions { gap: 5px; }
+  .btn-add { padding: 7px 10px; font-size: 16px; font-weight: 700; }
+  .btn-add .btn-full { display: none; }
+  .btn-add .btn-short { display: inline; }
+  .action-divider { display: none; }
+  .btn-logout { padding: 6px 8px; font-size: 13px; }
+  .btn-logout .btn-full { display: none; }
+  .btn-logout .btn-short { display: inline; }
   .hero { padding: 10px 14px; }
   .hero-content h2 { font-size: 0.9rem; }
   .hero-content p { font-size: 11px; }
