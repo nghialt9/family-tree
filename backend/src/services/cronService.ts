@@ -15,6 +15,7 @@ export function getVNHour(now: Date): number {
   return new Date(now.getTime() + 7 * 60 * 60 * 1000).getUTCHours();
 }
 
+// month is 0-indexed (0 = January), matching Date.getUTCMonth()
 export function daysUntilNextOccurrence(month: number, day: number, now: Date): number {
   const vnMs = now.getTime() + 7 * 60 * 60 * 1000;
   const vnDate = new Date(vnMs);
@@ -63,7 +64,10 @@ export async function runNotifications(now = new Date()): Promise<void> {
   ];
   const dateLabel = `${d}/${mo}/${y}`;
 
+  // success is only saved after send completes — if send throws, upsert is skipped and cron retries
   await sendNotificationBatch(recipients, events, dateLabel);
+
+  console.log(`[cron] sent notifications: ${events.length} events to ${recipients.length} recipients`);
 
   await prisma.notificationRun.upsert({
     where: { date: dateVN },
