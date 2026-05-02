@@ -1,7 +1,10 @@
 <template>
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
-      <h2>{{ editPerson ? 'Sửa thông tin' : preRelationTitle }}</h2>
+      <div class="modal-header">
+        <h2>{{ editPerson ? 'Sửa thông tin' : preRelationTitle }}</h2>
+        <button type="button" class="modal-close" @click="$emit('close')">✕</button>
+      </div>
 
       <form @submit.prevent="handleSubmit" class="form-grid">
 
@@ -409,7 +412,11 @@ async function handleSubmit() {
 <style scoped>
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
 .modal { background: #ffffff; border: 1px solid #d0d7de; border-radius: 12px; padding: 28px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 24px rgba(140,149,159,0.2); }
-h2 { margin-bottom: 20px; font-size: 1.1rem; color: #24292f; font-weight: 700; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.modal-header h2 { margin: 0; }
+.modal-close { background: none; border: none; color: #57606a; font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1; }
+.modal-close:hover { background: #f6f8fa; color: #24292f; }
+h2 { font-size: 1.1rem; color: #24292f; font-weight: 700; margin: 0; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .full-width { grid-column: 1 / -1; }

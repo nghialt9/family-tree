@@ -184,10 +184,10 @@ const displayEdges = computed(() =>
   rawEdges.value.map(e => ({
     ...e,
     hidden: isHidden(e.source) || isHidden(e.target),
-    type: e.type === 'parentChild' ? 'smoothstep' : 'straight',
+    type: e.type === 'parentChild' ? 'default' : 'straight',
     style: e.type === 'parentChild'
-      ? { stroke: '#0969da', strokeWidth: 1.5 }
-      : { stroke: '#c8d1d9', strokeWidth: 1.5 },
+      ? { stroke: '#0969da', strokeWidth: 2 }
+      : { stroke: '#c8d1d9', strokeWidth: 2 },
     markerEnd: e.type === 'parentChild'
       ? { type: MarkerType.ArrowClosed, color: '#0969da', width: 14, height: 14 }
       : undefined,
