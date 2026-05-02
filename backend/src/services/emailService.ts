@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const FROM = process.env.RESEND_FROM ?? 'noreply@example.com';
-
 export interface NotificationEvent {
   personName: string;
   type: 'birthday' | 'death';
@@ -51,11 +49,12 @@ export async function sendNotificationBatch(
   dateLabel: string,
 ): Promise<void> {
   const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.RESEND_FROM ?? 'noreply@example.com';
   const html = buildEmailHtml(events, dateLabel);
   const subject = `🌳 Gia Phả Họ Lâm — Nhắc lịch ngày ${dateLabel}`;
   const CHUNK = 100;
   for (let i = 0; i < recipients.length; i += CHUNK) {
-    const messages = recipients.slice(i, i + CHUNK).map(to => ({ from: FROM, to, subject, html }));
+    const messages = recipients.slice(i, i + CHUNK).map(to => ({ from, to, subject, html }));
     await resend.batch.send(messages);
   }
 }

@@ -1,6 +1,12 @@
 import { buildEmailHtml } from '../emailService';
 
 describe('buildEmailHtml', () => {
+  const originalAppUrl = process.env.APP_URL;
+
+  afterEach(() => {
+    process.env.APP_URL = originalAppUrl;
+  });
+
   it('includes today birthday in Hôm nay section', () => {
     const html = buildEmailHtml(
       [{ personName: 'Lâm Trọng Nghĩa', type: 'birthday', daysUntil: 0 }],
