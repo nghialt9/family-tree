@@ -33,6 +33,13 @@
                 <a :href="'tel:' + person.phone" class="phone-link">{{ person.phone }}</a>
               </div>
             </div>
+            <div v-if="person.email" class="info-row">
+              <span class="icon">✉️</span>
+              <div>
+                <div class="info-label">Email</div>
+                <a :href="'mailto:' + person.email" class="phone-link">{{ person.email }}</a>
+              </div>
+            </div>
             <div v-if="person.address" class="info-row">
               <span class="icon">📍</span>
               <div><div class="info-label">Địa chỉ</div><div>{{ person.address }}</div></div>
