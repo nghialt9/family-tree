@@ -11,6 +11,7 @@ export interface CreatePersonInput {
   phone?: string;
   address?: string;
   bio?: string;
+  email?: string;
   generation: number;
   grantAccess?: boolean;
   grantRole?: Role;
