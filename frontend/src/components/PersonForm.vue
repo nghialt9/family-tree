@@ -65,6 +65,10 @@
           <input v-model="form.phone" type="tel" />
         </div>
         <div class="field">
+          <label>Email thông báo</label>
+          <input v-model="form.email" type="email" placeholder="example@gmail.com" />
+        </div>
+        <div class="field">
           <label>Địa chỉ</label>
           <input v-model="form.address" />
         </div>
@@ -181,7 +185,7 @@ const isLockedSpouse = computed(() => props.preRelation?.type === 'asSpouseOf');
 
 const defaultForm = () => ({
   fullName: '', nickname: '', gender: 'male' as 'male' | 'female',
-  birthDate: '', deathDate: '', phone: '', address: '', bio: '',
+  birthDate: '', deathDate: '', phone: '', address: '', bio: '', email: '',
   generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'editor' | 'admin',
   grantPassword: '',
   fatherId: '', motherId: '', spouseId: '',
@@ -248,6 +252,7 @@ watch(() => props.editPerson, async (p) => {
       birthDate: p.birthDate ? p.birthDate.slice(0, 10) : '',
       deathDate: p.deathDate ? p.deathDate.slice(0, 10) : '',
       phone: p.phone || '', address: p.address || '', bio: p.bio || '',
+      email: p.email || '',
       generation: p.generation,
     };
     const [rResult, aResult] = await Promise.allSettled([
