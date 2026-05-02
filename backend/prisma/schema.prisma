@@ -19,6 +19,7 @@ model Person {
   address     String?
   bio         String?
   avatarUrl   String?
+  email       String?
   generation  Int       @default(1)
   isAlive     Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -80,4 +81,12 @@ enum Role {
 model SiteStats {
   id          String @id @default("global")
   totalVisits Int    @default(0)
+}
+
+model NotificationRun {
+  date    String    @id
+  success Boolean   @default(false)
+  sentAt  DateTime?
+
+  @@map("notification_runs")
 }
