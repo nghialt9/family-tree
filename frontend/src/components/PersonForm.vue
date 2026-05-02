@@ -383,6 +383,7 @@ async function handleSubmit() {
       birthDate: form.value.birthDate || undefined,
       deathDate: form.value.deathDate || undefined,
       phone: form.value.phone || undefined,
+      email: form.value.email || undefined,
       nickname: form.value.nickname || undefined,
       address: form.value.address || undefined,
       bio: form.value.bio || undefined,

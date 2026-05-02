@@ -50,6 +50,7 @@ export async function runNotifications(now = new Date()): Promise<void> {
 
   const recipients = persons.filter(p => p.email).map(p => p.email!);
 
+  // Mark success even when nothing to send — if recipients are added later today, they wait until tomorrow
   if (events.length === 0 || recipients.length === 0) {
     await prisma.notificationRun.upsert({
       where: { date: dateVN },
