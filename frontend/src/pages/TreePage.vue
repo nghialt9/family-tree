@@ -87,24 +87,41 @@
 
     <!-- Canvas area -->
     <div class="canvas-area">
-      <FamilyTreeCanvas
-        v-if="!fanView"
-        :key="treeKey"
-        ref="canvasRef"
-        :focus-person-id="auth.linkedPersonId"
-        @select-person="selectedPersonId = $event"
-      />
-      <FanChartCanvas
-        v-else
-        :key="'fan-' + treeKey"
-        ref="canvasRef"
-        @select-person="selectedPersonId = $event"
-      />
-      <button
-        class="view-toggle"
-        @click="fanView = !fanView"
-        :title="fanView ? 'Chuyển về Tree view' : 'Chuyển sang Fan Chart'"
-      >{{ fanView ? '🌳 Tree' : '🌀 Fan' }}</button>
+      <template v-if="mapView">
+        <MapTabCanvas @select-person="selectedPersonId = $event" />
+      </template>
+      <template v-else>
+        <FamilyTreeCanvas
+          v-if="!fanView"
+          :key="treeKey"
+          ref="canvasRef"
+          :focus-person-id="auth.linkedPersonId"
+          @select-person="selectedPersonId = $event"
+        />
+        <FanChartCanvas
+          v-else
+          :key="'fan-' + treeKey"
+          ref="canvasRef"
+          @select-person="selectedPersonId = $event"
+        />
+      </template>
+      <div class="view-toggle-group">
+        <button
+          :class="['toggle-btn', !fanView && !mapView && 'active']"
+          @click="fanView = false; mapView = false"
+          title="Chuyển về Tree view"
+        >🌳 Tree</button>
+        <button
+          :class="['toggle-btn', fanView && !mapView && 'active']"
+          @click="fanView = true; mapView = false"
+          title="Chuyển sang Fan Chart"
+        >🌀 Fan</button>
+        <button
+          :class="['toggle-btn', mapView && 'active']"
+          @click="mapView = true; fanView = false"
+          title="Bản đồ nguồn cội"
+        >🗺 Bản đồ</button>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -139,6 +156,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import FamilyTreeCanvas from '../components/FamilyTreeCanvas.vue';
 import FanChartCanvas from '../components/FanChartCanvas.vue';
+import MapTabCanvas from '../components/MapTabCanvas.vue';
 import PersonDrawer from '../components/PersonDrawer.vue';
 import PersonForm from '../components/PersonForm.vue';
 import { statsApi } from '../api';
@@ -154,6 +172,7 @@ const preRelation = ref<any>(null);
 const treeKey = ref(0);
 const drawerVersion = ref(0);
 const fanView = ref(false);
+const mapView = ref(false);
 const canvasRef = ref<{
   reload: () => void;
   focusOnNode: (id: string) => void;
@@ -321,27 +340,31 @@ function handleLogout() { auth.logout(); router.push('/login'); }
   display: flex;
   flex-direction: column;
 }
-.view-toggle {
+.view-toggle-group {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 10;
-  background: rgba(255,255,255,0.95);
+  display: flex;
   border: 1px solid #d0d7de;
   border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(140,149,159,0.15);
+}
+.toggle-btn {
+  background: rgba(255,255,255,0.95);
+  border: none;
+  border-right: 1px solid #d0d7de;
   padding: 6px 12px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(140,149,159,0.15);
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
-.view-toggle:hover {
-  background: #f0f7ff;
-  border-color: #0969da;
-  color: #0969da;
-}
+.toggle-btn:last-child { border-right: none; }
+.toggle-btn:hover { background: #f0f7ff; color: #0969da; }
+.toggle-btn.active { background: #ddf4ff; color: #0969da; }
 
 /* Mobile */
 @media (max-width: 640px) {
