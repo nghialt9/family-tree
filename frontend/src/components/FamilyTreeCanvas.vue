@@ -16,7 +16,7 @@
 
     <div v-if="loading" class="overlay">Đang tải gia phả...</div>
     <div v-if="error" class="overlay error-msg">{{ error }}</div>
-    <div class="zoom-indicator">{{ Math.round(viewport.zoom * 100) }}%</div>
+    <div class="zoom-indicator">{{ Math.round(viewport.zoom * 83) }}%</div>
   </div>
 </template>
 

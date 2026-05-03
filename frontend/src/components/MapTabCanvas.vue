@@ -27,7 +27,7 @@
     </div>
 
     <div v-else class="map-wrap">
-      <l-map :zoom="6" :center="[16.0, 108.0]" style="height:100%;width:100%">
+      <l-map :zoom="6" :center="[13.0, 108.0]" style="height:100%;width:100%">
         <l-tile-layer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
