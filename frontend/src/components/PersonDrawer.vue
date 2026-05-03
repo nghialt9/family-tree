@@ -54,15 +54,24 @@
           <div v-if="relatives" class="relatives-section">
             <div v-if="relatives.spouses?.length">
               <h3>💍 Vợ / Chồng</h3>
-              <button v-for="s in relatives.spouses" :key="s.id" class="rel-btn" @click="$emit('selectPerson', s.id)">{{ s.fullName }}</button>
+              <div v-for="s in relatives.spouses" :key="s.id" class="rel-row">
+                <button class="rel-btn" @click="$emit('selectPerson', s.id)">{{ s.fullName }}</button>
+                <router-link :to="`/relationships/${s.relationshipId}/media`" class="rel-media-btn" title="Xem ảnh quan hệ">🖼</router-link>
+              </div>
             </div>
             <div v-if="relatives.parents?.length">
               <h3>👴 Cha / Mẹ</h3>
-              <button v-for="p in relatives.parents" :key="p.id" class="rel-btn" @click="$emit('selectPerson', p.id)">{{ p.fullName }}</button>
+              <div v-for="p in relatives.parents" :key="p.id" class="rel-row">
+                <button class="rel-btn" @click="$emit('selectPerson', p.id)">{{ p.fullName }}</button>
+                <router-link :to="`/relationships/${p.relationshipId}/media`" class="rel-media-btn" title="Xem ảnh quan hệ">🖼</router-link>
+              </div>
             </div>
             <div v-if="relatives.children?.length">
               <h3>👶 Con cái ({{ relatives.children.length }})</h3>
-              <button v-for="c in relatives.children" :key="c.id" class="rel-btn" @click="$emit('selectPerson', c.id)">{{ c.fullName }}</button>
+              <div v-for="c in relatives.children" :key="c.id" class="rel-row">
+                <button class="rel-btn" @click="$emit('selectPerson', c.id)">{{ c.fullName }}</button>
+                <router-link :to="`/relationships/${c.relationshipId}/media`" class="rel-media-btn" title="Xem ảnh quan hệ">🖼</router-link>
+              </div>
             </div>
           </div>
 
@@ -166,6 +175,10 @@ h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
 .bio-section p { font-size: 13px; color: #24292f; line-height: 1.6; }
 .rel-btn { background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin: 0 4px 4px 0; }
 .rel-btn:hover { background: #ddf4ff; border-color: #54aeff; }
+.rel-row { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+.rel-row .rel-btn { margin: 0; flex: 1; }
+.rel-media-btn { font-size: 14px; text-decoration: none; padding: 2px 6px; border-radius: 4px; background: #f6f8fa; border: 1px solid #d0d7de; cursor: pointer; flex-shrink: 0; }
+.rel-media-btn:hover { background: #ddf4ff; border-color: #54aeff; }
 .quick-add-section { margin-top: 20px; }
 .quick-add-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .btn-quick { background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 5px 11px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 500; }
