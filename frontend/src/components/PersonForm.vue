@@ -322,6 +322,7 @@ const spouseOptions = computed(() => otherPersons.value.map(p => ({
 })));
 
 onMounted(async () => {
+  console.log('[DEBUG] PersonForm mounted, editPerson:', props.editPerson?.fullName);
   const res = await personsApi.list();
   allPersons.value = res.data;
 });
