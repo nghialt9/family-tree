@@ -79,8 +79,8 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
         ...personData,
         ...coordClear,
         ...('deathDate' in personData ? { isAlive: !personData.deathDate } : {}),
-        birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
-        deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
+        ...('birthDate' in personData ? { birthDate: personData.birthDate ? new Date(personData.birthDate as string) : null } : {}),
+        ...('deathDate' in personData ? { deathDate: personData.deathDate ? new Date(personData.deathDate as string) : null } : {}),
       },
     });
 

@@ -126,3 +126,20 @@ describe('PUT /api/persons/:id — location fields', () => {
     expect(res.body.currentLng).toBeNull();
   });
 });
+
+describe('PUT /api/persons/:id — partial update preservation', () => {
+  it('does not clobber birthDate when updating only hometown', async () => {
+    const person = await prisma.person.create({
+      data: { fullName: 'Lâm Văn E', gender: 'male', generation: 1, birthDate: new Date('1950-03-15') },
+    });
+    const res = await request(app).put(`/api/persons/${person.id}`).set(authA())
+      .send({ hometown: 'Đồng Tháp' });
+    expect(res.status).toBe(200);
+    expect(res.body.hometown).toBe('Đồng Tháp');
+    expect(res.body.birthDate).toBeTruthy();
+    const saved = new Date(res.body.birthDate);
+    expect(saved.getUTCFullYear()).toBe(1950);
+    expect(saved.getUTCMonth()).toBe(2);
+    expect(saved.getUTCDate()).toBe(15);
+  });
+});
