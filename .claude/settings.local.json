@@ -50,7 +50,13 @@
       "Bash(npm uninstall *)",
       "Bash(git *)",
       "Bash(npx vite *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(\"C:/Users/lamtrong.nghia1/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh\" --project-dir .)",
+      "Bash(PGPASSWORD=postgres psql -h localhost -U postgres -d family_tree_test -c 'ALTER TABLE \"persons\" ADD COLUMN IF NOT EXISTS \"currentLat\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"currentLng\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"homeLat\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"homeLng\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"hometown\" TEXT;')",
+      "Bash(where psql *)",
+      "Read(//c/Program Files/PostgreSQL/**)",
+      "Bash(PGPASSWORD=postgres /c/Program Files/PostgreSQL/17/bin/psql *)",
+      "PowerShell($env:PGPASSWORD = \"postgres\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -h localhost -U postgres -d family_tree_test -c 'ALTER TABLE \"persons\" ADD COLUMN IF NOT EXISTS \"currentLat\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"currentLng\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"homeLat\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"homeLng\" DOUBLE PRECISION, ADD COLUMN IF NOT EXISTS \"hometown\" TEXT;' 2>&1)"
     ]
   }
 }

@@ -189,7 +189,7 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('vi-VN');
 </script>
 
 <style scoped>
-.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 100; }
+.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 2000; }
 .drawer { position: fixed; right: 0; top: 0; height: 100vh; width: 380px; background: #ffffff; border-left: 1px solid #d0d7de; overflow-y: auto; padding: 24px; box-shadow: -4px 0 16px rgba(140,149,159,0.15); }
 .close-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: #57606a; font-size: 18px; cursor: pointer; }
 .close-btn:hover { color: #24292f; }

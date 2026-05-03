@@ -1,0 +1,61 @@
+<h2>PersonForm — Nhập vị trí</h2>
+<p class="subtitle">UX cho phần Quê quán + Địa chỉ hiện tại với geocoding + drag pin</p>
+
+<div class="mockup">
+  <div class="mockup-header">PersonForm — phần địa điểm</div>
+  <div class="mockup-body" style="font-size:13px; display:flex; flex-direction:column; gap:16px;">
+
+    <!-- Quê quán -->
+    <div>
+      <div style="font-size:10px;font-weight:600;color:#57606a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Quê quán</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="mock-input" style="flex:1" placeholder="VD: Đồng Tháp, Việt Nam" value="Đồng Tháp, Việt Nam" />
+        <button class="mock-button" style="background:#0969da;color:#fff;border-color:#0969da;white-space:nowrap;font-size:12px">📍 Geocode</button>
+      </div>
+      <!-- Pin map preview after geocode -->
+      <div style="margin-top:8px;border:1px solid #54aeff;border-radius:6px;overflow:hidden;position:relative">
+        <div style="height:120px;background:linear-gradient(135deg,#c8e6c9,#a5d6a7);position:relative;">
+          <div style="position:absolute;inset:0;opacity:0.15;background:repeating-linear-gradient(0deg,#4caf50 0,#4caf50 1px,transparent 1px,transparent 30px),repeating-linear-gradient(90deg,#4caf50 0,#4caf50 1px,transparent 1px,transparent 30px)"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);font-size:24px;cursor:move" title="Kéo để chỉnh vị trí">📍</div>
+          <div style="position:absolute;bottom:4px;right:6px;font-size:9px;color:#57606a;background:rgba(255,255,255,.8);padding:2px 5px;border-radius:4px">Kéo pin để chỉnh vị trí</div>
+        </div>
+        <div style="padding:5px 8px;background:#f0f9ff;border-top:1px solid #54aeff;font-size:11px;color:#0969da">
+          ✓ 10.3393°N, 105.6880°E — Đồng Tháp, Đồng bằng sông Cửu Long
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <hr style="border:none;border-top:1px solid #d0d7de;margin:0" />
+
+    <!-- Địa chỉ hiện tại -->
+    <div>
+      <div style="font-size:10px;font-weight:600;color:#57606a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Địa chỉ hiện tại</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input class="mock-input" style="flex:1" placeholder="VD: Q.7, TP.HCM" value="" />
+        <button class="mock-button" style="background:#f6f8fa;color:#57606a;white-space:nowrap;font-size:12px">📍 Geocode</button>
+      </div>
+      <div style="margin-top:6px;font-size:11px;color:#8c959f;padding:8px;border:1px dashed #d0d7de;border-radius:6px;text-align:center">
+        Nhập địa chỉ rồi bấm Geocode để hiện bản đồ
+      </div>
+    </div>
+
+    <!-- Hint -->
+    <div style="font-size:11px;color:#57606a;background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:8px 10px">
+      💡 Cả hai địa điểm đều tùy chọn. Nếu bỏ trống, người này sẽ không xuất hiện trên bản đồ.
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:16px">
+  <h3>Luồng hoạt động</h3>
+  <ol style="font-size:13px;color:#24292f;line-height:2;padding-left:20px">
+    <li>Editor nhập text địa chỉ</li>
+    <li>Bấm <strong>Geocode</strong> → gọi <code>GET /api/geocode?q=...</code></li>
+    <li>Backend proxy Nominatim → trả về lat/lng + display name</li>
+    <li>Frontend hiện mini-map với pin ở vị trí tìm được</li>
+    <li>Editor kéo pin để chỉnh nếu sai → lat/lng cập nhật theo</li>
+    <li>Lưu → <code>PUT /api/persons/:id</code> gửi kèm lat/lng</li>
+  </ol>
+</div>

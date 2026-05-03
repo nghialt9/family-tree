@@ -619,7 +619,7 @@ textarea { resize: vertical; }
 .mt-6 { margin-top: 6px; }
 
 @media (max-width: 560px) {
-  .modal { padding: 18px; }
+  .pf-dialog { padding: 18px; }
   .form-grid { grid-template-columns: 1fr; }
   .full-width { grid-column: 1; }
 }
