@@ -187,6 +187,7 @@ model AlbumMedia {
   media    Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@id([albumId, mediaId])
+  @@index([mediaId])
   @@map("album_media")
 }
 
