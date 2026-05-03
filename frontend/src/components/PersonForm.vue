@@ -76,7 +76,7 @@
               <button type="button" class="btn-geocode" :disabled="geocodingHometown || !form.hometown.trim()" @click="geocodeHometown">
                 {{ geocodingHometown ? '...' : '📍 Geocode' }}
               </button>
-              <button v-if="form.homeLat !== null" type="button" class="btn-clear-loc" @click="form.homeLat = null; form.homeLng = null; hometownDisplayName = ''">✕</button>
+              <button v-if="form.homeLat !== null || form.homeLng !== null" type="button" class="btn-clear-loc" @click="form.homeLat = null; form.homeLng = null; hometownDisplayName = ''">✕</button>
             </div>
             <div v-if="geocodeHometownError" class="geocode-error">{{ geocodeHometownError }}</div>
             <div v-if="form.homeLat !== null && form.homeLng !== null" class="mini-map-wrap">
@@ -110,7 +110,7 @@
               <button type="button" class="btn-geocode" :disabled="geocodingCurrent || !form.address.trim()" @click="geocodeCurrent">
                 {{ geocodingCurrent ? '...' : '📍 Geocode' }}
               </button>
-              <button v-if="form.currentLat !== null" type="button" class="btn-clear-loc" @click="form.currentLat = null; form.currentLng = null; currentDisplayName = ''">✕</button>
+              <button v-if="form.currentLat !== null || form.currentLng !== null" type="button" class="btn-clear-loc" @click="form.currentLat = null; form.currentLng = null; currentDisplayName = ''">✕</button>
             </div>
             <div v-if="geocodeCurrentError" class="geocode-error">{{ geocodeCurrentError }}</div>
             <div v-if="form.currentLat !== null && form.currentLng !== null" class="mini-map-wrap">
@@ -451,6 +451,7 @@ async function geocodeHometown() {
   if (!form.value.hometown.trim()) return;
   geocodingHometown.value = true;
   geocodeHometownError.value = '';
+  hometownDisplayName.value = '';
   try {
     const res = await geocodeApi.search(form.value.hometown);
     if (!res.data.length) {
@@ -474,6 +475,7 @@ async function geocodeCurrent() {
   if (!form.value.address.trim()) return;
   geocodingCurrent.value = true;
   geocodeCurrentError.value = '';
+  currentDisplayName.value = '';
   try {
     const res = await geocodeApi.search(form.value.address);
     if (!res.data.length) {
@@ -497,12 +499,14 @@ function onHometownMarkerMove(event: any) {
   const { lat, lng } = event.target.getLatLng();
   form.value.homeLat = lat;
   form.value.homeLng = lng;
+  hometownDisplayName.value = '';
 }
 
 function onCurrentMarkerMove(event: any) {
   const { lat, lng } = event.target.getLatLng();
   form.value.currentLat = lat;
   form.value.currentLng = lng;
+  currentDisplayName.value = '';
 }
 
 async function handleSubmit() {
