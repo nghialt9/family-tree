@@ -10,6 +10,14 @@
 
     <div v-if="loading" class="map-loading">Đang tải...</div>
 
+    <div v-else-if="loadError" class="no-data-overlay">
+      <div class="no-data-box">
+        <div class="no-data-icon">⚠️</div>
+        <div class="no-data-text">Không thể tải dữ liệu.</div>
+        <div class="no-data-hint">Kiểm tra kết nối và thử lại.</div>
+      </div>
+    </div>
+
     <div v-else-if="totalWithLocation === 0" class="no-data-overlay">
       <div class="no-data-box">
         <div class="no-data-icon">🗺</div>
@@ -73,6 +81,7 @@ const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
 const persons = ref<any[]>([]);
 const loading = ref(true);
+const loadError = ref(false);
 const filterMode = ref<'all' | 'hometown' | 'current'>('all');
 
 const hometownIcon = L.divIcon({
@@ -109,6 +118,8 @@ onMounted(async () => {
   try {
     const res = await personsApi.list();
     persons.value = res.data;
+  } catch {
+    loadError.value = true;
   } finally {
     loading.value = false;
   }
@@ -165,10 +176,10 @@ onMounted(async () => {
 .no-data-text { font-size: 15px; color: #24292f; font-weight: 500; margin-bottom: 6px; }
 .no-data-hint { font-size: 13px; color: #57606a; }
 
-.pin-popup { font-size: 13px; min-width: 160px; }
-.pin-name { font-weight: 700; color: #24292f; margin-bottom: 3px; }
-.pin-sub { color: #57606a; font-size: 12px; margin-bottom: 6px; }
-.pin-detail {
+:deep(.pin-popup) { font-size: 13px; min-width: 160px; }
+:deep(.pin-name) { font-weight: 700; color: #24292f; margin-bottom: 3px; }
+:deep(.pin-sub) { color: #57606a; font-size: 12px; margin-bottom: 6px; }
+:deep(.pin-detail) {
   background: none;
   border: none;
   color: #0969da;
@@ -176,5 +187,5 @@ onMounted(async () => {
   cursor: pointer;
   padding: 0;
 }
-.pin-detail:hover { text-decoration: underline; }
+:deep(.pin-detail):hover { text-decoration: underline; }
 </style>
