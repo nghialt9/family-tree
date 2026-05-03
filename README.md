@@ -221,6 +221,21 @@ flyctl secrets set \
   JWT_EXPIRES_IN="30d" \
   --app justinlam-familytree
 
+  Task 10 (Fly.io secrets + deploy) requires your Resend API key. To complete the deployment, run these three commands
+  yourself:
+
+  fly secrets set RESEND_API_KEY=re_ATySox2m_4YtWUtvdfTFEML7wcKezp5oG
+  fly secrets set RESEND_FROM=onboarding@resend.dev
+  fly secrets set APP_URL=https://justinlam-familytree.fly.dev
+  fly deploy
+
+  fly secrets set CLOUDINARY_CLOUD_NAME=dcxdq2lyr
+  fly secrets set CLOUDINARY_API_KEY=816583792127762
+  fly secrets set CLOUDINARY_API_SECRET=FNgYABB9cKk54jQQjvuT_FGAUFQ
+  fly deploy
+
+  After deploy, watch fly logs for the line [cron] notification cron started (every 5 min) to confirm it's running.
+
 # 6. Lấy deploy token cho GitHub Actions
 flyctl tokens create deploy --name github-actions
 # → Thêm vào GitHub repo: Settings → Secrets → FLY_API_TOKEN

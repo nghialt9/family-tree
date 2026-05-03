@@ -4,7 +4,7 @@
     <!-- Toolbar -->
     <div class="toolbar">
       <span class="app-title">
-        🌳 Gia Phả Nhà Lâm
+        🌳 Gia Phả Họ Lâm
         <span v-if="totalPersonCount" class="title-count">· {{ totalPersonCount }} người</span>
       </span>
 

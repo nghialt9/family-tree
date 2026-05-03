@@ -1,7 +1,7 @@
 <template>
   <div class="login-wrap">
     <div class="login-card">
-      <h1>🌳 Gia Phả Nhà Lâm</h1>
+      <h1>🌳 Gia Phả Họ Lâm</h1>
       <p class="subtitle">Nhập số điện thoại để xem gia phả</p>
 
       <form @submit.prevent="step === 1 ? handleCheckPhone() : handleLogin()">

@@ -8,5 +8,5 @@ import { RouterView } from 'vue-router';
 
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; }
+body { font-family: 'Segoe UI', sans-serif; background: #f6f8fa; color: #24292f; }
 </style>

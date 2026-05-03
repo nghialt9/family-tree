@@ -1,4 +1,4 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 export interface NotificationEvent {
   personName: string;
@@ -48,13 +48,21 @@ export async function sendNotificationBatch(
   events: NotificationEvent[],
   dateLabel: string,
 ): Promise<void> {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const from = process.env.RESEND_FROM ?? 'noreply@example.com';
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS on port 587
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+
   const html = buildEmailHtml(events, dateLabel);
   const subject = `🌳 Gia Phả Họ Lâm — Nhắc lịch ngày ${dateLabel}`;
-  const CHUNK = 100;
-  for (let i = 0; i < recipients.length; i += CHUNK) {
-    const messages = recipients.slice(i, i + CHUNK).map(to => ({ from, to, subject, html }));
-    await resend.batch.send(messages);
+  const from = `"Gia Phả Họ Lâm" <${process.env.GMAIL_USER}>`;
+
+  for (const to of recipients) {
+    await transporter.sendMail({ from, to, subject, html });
   }
 }
