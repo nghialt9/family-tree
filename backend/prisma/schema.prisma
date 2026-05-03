@@ -29,6 +29,7 @@ model Person {
   relationshipsAsB Relationship[] @relation("PersonB")
   accessToken      AccessToken?
   media            Media[]
+  albums           Album[]
 
   @@map("persons")
 }
@@ -138,6 +139,9 @@ model Media {
   uploadedBy     String
   createdAt      DateTime          @default(now())
 
+  albumItems  AlbumMedia[]
+  albumCovers Album[]      @relation("AlbumCover")
+
   @@index([personId])
   @@index([relationshipId])
   @@index([status])
@@ -151,6 +155,42 @@ enum MediaResourceType {
 }
 
 enum MediaStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Album {
+  id           String      @id @default(uuid())
+  title        String
+  description  String?
+  coverMediaId String?
+  coverMedia   Media?      @relation("AlbumCover", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  personId     String?
+  person       Person?     @relation(fields: [personId], references: [id], onDelete: SetNull)
+  createdBy    String
+  status       AlbumStatus @default(PENDING)
+  createdAt    DateTime    @default(now())
+  items        AlbumMedia[]
+
+  @@index([personId])
+  @@index([status])
+  @@map("albums")
+}
+
+model AlbumMedia {
+  albumId  String
+  mediaId  String
+  position Int      @default(0)
+  addedAt  DateTime @default(now())
+  album    Album    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  media    Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([albumId, mediaId])
+  @@map("album_media")
+}
+
+enum AlbumStatus {
   PENDING
   APPROVED
   REJECTED
