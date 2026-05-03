@@ -181,19 +181,23 @@ router.post('/:id/avatar', requireEditor, upload.single('avatar'), async (req, r
 });
 
 router.get('/:id/albums', requireViewer, async (req: AuthRequest, res) => {
-  const isPrivileged = req.user!.role === 'admin' || req.user!.role === 'editor';
-  const where: Record<string, unknown> = { personId: req.params.id };
-  if (!isPrivileged) where.status = 'APPROVED';
+  try {
+    const isPrivileged = req.user!.role === 'admin' || req.user!.role === 'editor';
+    const where: Record<string, unknown> = { personId: req.params.id };
+    if (!isPrivileged) where.status = 'APPROVED';
 
-  const data = await prisma.album.findMany({
-    where,
-    include: {
-      coverMedia: { select: { url: true } },
-      _count: { select: { items: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-  res.json({ data });
+    const data = await prisma.album.findMany({
+      where,
+      include: {
+        coverMedia: { select: { url: true } },
+        _count: { select: { items: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ data });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export { router as personsRouter };

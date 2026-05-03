@@ -152,7 +152,10 @@ watch(
       ]);
       person.value = pRes.data;
       relatives.value = rRes.data;
-      personAlbums.value = aRes.data.data;
+      personAlbums.value = aRes.data.data ?? [];
+    } catch {
+      person.value = null;
+      relatives.value = null;
     } finally {
       loading.value = false;
     }
