@@ -38,7 +38,7 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { mediaApi } from '../api';
 
-const props = defineProps<{ personId: string }>();
+const props = defineProps<{ personId?: string; relationshipId?: string }>();
 const emit = defineEmits<{ (e: 'close'): void; (e: 'uploaded'): void }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -102,7 +102,10 @@ async function upload() {
 
   try {
     // Step 1: Get upload signature from our backend
-    const signRes = await mediaApi.sign({ resourceType, personId: props.personId });
+    const signParams = props.relationshipId
+      ? { resourceType, relationshipId: props.relationshipId }
+      : { resourceType, personId: props.personId! };
+    const signRes = await mediaApi.sign(signParams);
     const { signature, timestamp, apiKey, cloudName, folder } = signRes.data;
 
     // Step 2: Upload directly to Cloudinary (must use raw axios, not api instance)
@@ -131,14 +134,19 @@ async function upload() {
     const enumType = resourceType === 'image' ? 'IMAGE' : resourceType === 'video' ? 'VIDEO' : 'RAW';
 
     try {
-      await mediaApi.confirmUpload(props.personId, {
+      const uploadData = {
         cloudinaryId: public_id,
         url: secure_url,
         resourceType: enumType,
         format,
         bytes,
         caption: caption.value || undefined,
-      });
+      };
+      if (props.relationshipId) {
+        await mediaApi.confirmRelationshipUpload(props.relationshipId, uploadData);
+      } else {
+        await mediaApi.confirmUpload(props.personId!, uploadData);
+      }
     } catch {
       uploadError.value = 'Tải lên thành công nhưng không lưu được — vui lòng thử lại.';
       uploading.value = false;
