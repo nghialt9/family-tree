@@ -57,11 +57,22 @@ export async function createPerson(input: CreatePersonInput & Record<string, unk
 export async function updatePerson(id: string, input: UpdatePersonInput & Record<string, unknown>) {
   const { grantAccess, grantRole, grantPassword, fatherId: _f, motherId: _m, spouseId: _s, ...personData } = input;
 
+  const coordClear: Record<string, null> = {};
+  if ('address' in personData && !personData.address) {
+    coordClear.currentLat = null;
+    coordClear.currentLng = null;
+  }
+  if ('hometown' in personData && !personData.hometown) {
+    coordClear.homeLat = null;
+    coordClear.homeLng = null;
+  }
+
   return prisma.$transaction(async (tx) => {
     const person = await tx.person.update({
       where: { id },
       data: {
         ...personData,
+        ...coordClear,
         isAlive: !personData.deathDate,
         birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
         deathDate: personData.deathDate ? new Date(personData.deathDate) : null,

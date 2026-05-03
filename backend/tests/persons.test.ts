@@ -79,3 +79,50 @@ describe('GET /api/persons/:id/relatives', () => {
     expect(res.body.parents).toHaveLength(0);
   });
 });
+
+describe('PUT /api/persons/:id — location fields', () => {
+  it('stores hometown and homeLat/homeLng', async () => {
+    const person = await prisma.person.create({
+      data: { fullName: 'Lâm Văn A', gender: 'male', generation: 1 },
+    });
+    const res = await request(app).put(`/api/persons/${person.id}`).set(authA())
+      .send({ hometown: 'Đồng Tháp', homeLat: 10.339, homeLng: 105.688 });
+    expect(res.status).toBe(200);
+    expect(res.body.hometown).toBe('Đồng Tháp');
+    expect(res.body.homeLat).toBeCloseTo(10.339);
+    expect(res.body.homeLng).toBeCloseTo(105.688);
+  });
+
+  it('stores currentLat/currentLng', async () => {
+    const person = await prisma.person.create({
+      data: { fullName: 'Lâm Văn B', gender: 'male', generation: 1 },
+    });
+    const res = await request(app).put(`/api/persons/${person.id}`).set(authA())
+      .send({ address: 'Q.7, TP.HCM', currentLat: 10.732, currentLng: 106.722 });
+    expect(res.status).toBe(200);
+    expect(res.body.currentLat).toBeCloseTo(10.732);
+    expect(res.body.currentLng).toBeCloseTo(106.722);
+  });
+
+  it('clears homeLat/homeLng when hometown set to empty string', async () => {
+    const person = await prisma.person.create({
+      data: { fullName: 'Lâm Văn C', gender: 'male', generation: 1, hometown: 'Đồng Tháp', homeLat: 10.339, homeLng: 105.688 },
+    });
+    const res = await request(app).put(`/api/persons/${person.id}`).set(authA())
+      .send({ hometown: '' });
+    expect(res.status).toBe(200);
+    expect(res.body.homeLat).toBeNull();
+    expect(res.body.homeLng).toBeNull();
+  });
+
+  it('clears currentLat/currentLng when address set to empty string', async () => {
+    const person = await prisma.person.create({
+      data: { fullName: 'Lâm Văn D', gender: 'male', generation: 1, address: 'HCM', currentLat: 10.8, currentLng: 106.6 },
+    });
+    const res = await request(app).put(`/api/persons/${person.id}`).set(authA())
+      .send({ address: '' });
+    expect(res.status).toBe(200);
+    expect(res.body.currentLat).toBeNull();
+    expect(res.body.currentLng).toBeNull();
+  });
+});

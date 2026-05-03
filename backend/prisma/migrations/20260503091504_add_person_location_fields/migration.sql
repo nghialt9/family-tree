@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "persons" ADD COLUMN     "currentLat" DOUBLE PRECISION,
+ADD COLUMN     "currentLng" DOUBLE PRECISION,
+ADD COLUMN     "homeLat" DOUBLE PRECISION,
+ADD COLUMN     "homeLng" DOUBLE PRECISION,
+ADD COLUMN     "hometown" TEXT;
