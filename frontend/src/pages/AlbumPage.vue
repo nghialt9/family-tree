@@ -19,7 +19,7 @@
         <router-link v-if="album.person" :to="`/persons/${album.person.id}`" class="person-link">👤 {{ album.person.fullName }}</router-link>
 
         <div class="actions">
-          <button v-if="auth.token" class="btn-add" @click="showAddMedia = true">+ Thêm media</button>
+          <button v-if="canEdit" class="btn-add" @click="showAddMedia = true">+ Thêm media</button>
           <template v-if="isAdmin && album.status === 'PENDING'">
             <button class="btn-approve" @click="moderate('APPROVED')">✓ Duyệt</button>
             <button class="btn-reject" @click="moderate('REJECTED')">✗ Từ chối</button>

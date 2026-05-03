@@ -161,6 +161,11 @@ router.post('/:id/media', requireViewer, async (req: AuthRequest, res) => {
     const album = await prisma.album.findUnique({ where: { id: req.params.id } });
     if (!album) { res.status(404).json({ error: 'Not found' }); return; }
 
+    const isPrivilegedAdd = req.user!.role === 'admin' || req.user!.role === 'editor';
+    if (!isPrivilegedAdd && album.createdBy !== req.user!.phone) {
+      res.status(403).json({ error: 'Forbidden' }); return;
+    }
+
     const { mediaId, cloudinaryId, url, resourceType, format, bytes, caption } = req.body;
 
     if (mediaId) {
