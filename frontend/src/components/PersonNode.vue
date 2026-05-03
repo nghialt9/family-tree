@@ -34,8 +34,7 @@
         </div>
         <a v-if="data.phone" :href="'tel:' + data.phone" class="detail phone-link" @click.stop>📞 {{ data.phone }}</a>
         <div v-if="data.birthDate" class="detail">🎂 {{ formatDate(data.birthDate) }}</div>
-        <div v-if="data.deathLunarDay && data.deathLunarMonth" class="detail deceased-tag">✝ {{ data.deathLunarDay }}/{{ data.deathLunarMonth }}<template v-if="data.deathLunarYear">/{{ data.deathLunarYear }}</template> âm lịch</div>
-        <div v-else-if="data.deathDate" class="detail deceased-tag">✝ {{ formatDate(data.deathDate) }}</div>
+        <div v-if="data.deathDate" class="detail deceased-tag">✝ {{ formatDate(data.deathDate) }}</div>
       </div>
     </div>
 
@@ -56,15 +55,12 @@
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 
-// defineProps với TypeScript generic — Record<string, any> vì VueFlow truyền data dạng object động
 const props = defineProps<{ data: Record<string, any> }>();
 
-// toLocaleDateString('vi-VN') — format ngày theo chuẩn Việt Nam (dd/mm/yyyy)
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('vi-VN');
 }
 
-// Mỗi thế hệ một màu nhấn; thế hệ 5 trở lên đều dùng màu cuối cùng (đỏ)
 const GEN_COLORS = [
   { accent: '#2da44e', badgeBg: '#e6ffec' }, // gen 1 — green
   { accent: '#0969da', badgeBg: '#ddf4ff' }, // gen 2 — blue
@@ -73,29 +69,22 @@ const GEN_COLORS = [
   { accent: '#cf222e', badgeBg: '#ffebe9' }, // gen 5+ — red
 ];
 
-// computed() — tự cache, chỉ tính lại khi data.generation thay đổi
 const genColor = computed(() => {
-  // Giới hạn ở entry cuối cho thế hệ vượt quá độ dài mảng
   const idx = Math.min((props.data.generation ?? 1) - 1, GEN_COLORS.length - 1);
   return GEN_COLORS[idx];
 });
 
-// Ký tự đầu của từ đầu + ký tự đầu của từ cuối; xử lý trường hợp chỉ có một từ
 const initials = computed(() => {
   const parts = (props.data.fullName ?? '').trim().split(/\s+/);
   if (parts.length === 1) return (parts[0][0] ?? '?').toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 });
 
-// computed() — màu nền xác định từ ID để nhất quán qua mỗi lần render mà không cần lưu DB
 const avatarBg = computed(() => {
   const seed = props.data.id ?? props.data.fullName ?? '';
   const colors = ['#0969da', '#2da44e', '#9a3ecb', '#bc4c00', '#1b7c83', '#8250df'];
   let h = 0;
-  // charCodeAt(0) — lấy mã Unicode của từng ký tự; nhân 31 là kỹ thuật hash phổ biến (polynomial rolling)
-  // & 0x7fffffff — mask giữ số trong phạm vi 32-bit dương, tránh overflow số nguyên trong JavaScript
   for (const c of seed) h = (h * 31 + c.charCodeAt(0)) & 0x7fffffff;
-  // h % colors.length — modulo đảm bảo chỉ số luôn nằm trong mảng màu
   return colors[h % colors.length];
 });
 </script>

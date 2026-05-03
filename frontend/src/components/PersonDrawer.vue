@@ -22,11 +22,7 @@
               <span class="icon">🎂</span>
               <div><div class="info-label">Ngày sinh</div><div>{{ formatDate(person.birthDate) }}</div></div>
             </div>
-            <div v-if="person.deathLunarDay && person.deathLunarMonth" class="info-row">
-              <span class="icon">✝</span>
-              <div><div class="info-label">Ngày mất (âm lịch)</div><div>{{ person.deathLunarDay }}/{{ person.deathLunarMonth }}<template v-if="person.deathLunarYear">/{{ person.deathLunarYear }}</template> âm lịch</div></div>
-            </div>
-            <div v-else-if="person.deathDate" class="info-row">
+            <div v-if="person.deathDate" class="info-row">
               <span class="icon">✝</span>
               <div><div class="info-label">Ngày mất</div><div>{{ formatDate(person.deathDate) }}</div></div>
             </div>
@@ -129,7 +125,6 @@ import { personsApi, albumsApi } from '../api';
 import AlbumCreateModal from './AlbumCreateModal.vue';
 import { useAuthStore } from '../stores/auth';
 
-// defineProps + defineEmits với TypeScript generic — type-safe, không cần runtime validator
 const props = defineProps<{ personId: string | null; version?: number }>();
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -140,7 +135,6 @@ const emit = defineEmits<{
 }>();
 
 const auth = useAuthStore();
-// storeToRefs() giữ reactivity khi destructure từ Pinia store
 const { isAdmin, isEditor } = storeToRefs(auth);
 const person = ref<any>(null);
 const relatives = ref<any>(null);
@@ -148,10 +142,6 @@ const loading = ref(false);
 const personAlbums = ref<any[]>([]);
 const showCreateAlbum = ref(false);
 
-// watch([dep1, dep2], async ([val1]) => ...) — lắng nghe 2 deps cùng lúc, destructure lấy id
-// async handler được phép — Vue bắt unhandled rejection nếu có
-// Tải lại khi người được chọn thay đổi HOẶC khi `version` tăng (ví dụ sau khi lưu).
-// Ba request song song để drawer mở ngay mà không bị tuần tự từng bước.
 watch(
   [() => props.personId, () => props.version],
   async ([id]) => {
@@ -159,7 +149,6 @@ watch(
     if (!id) { person.value = null; relatives.value = null; return; }
     loading.value = true;
     try {
-      // Promise.all() — chạy 3 request song song; throw ngay nếu bất kỳ request nào fail
       const [pRes, rRes, aRes] = await Promise.all([
         personsApi.get(id as string),
         personsApi.getRelatives(id as string),
@@ -177,7 +166,6 @@ watch(
   }
 );
 
-// Truyền dữ liệu có cấu trúc lên TreePage để form PersonForm điền sẵn đúng trường bị khoá
 function addRelative(type: string) {
   if (!person.value) return;
   emit('addRelative', { type, personId: person.value.id, personName: person.value.fullName, personGender: person.value.gender });
@@ -187,7 +175,6 @@ async function handleDelete() {
   if (!person.value || !confirm(`Xóa ${person.value.fullName}?`)) return;
   await personsApi.delete(person.value.id);
   emit('deleted');
-  // Đóng drawer để tránh hiển thị dữ liệu cũ của người vừa bị xóa
   emit('close');
 }
 

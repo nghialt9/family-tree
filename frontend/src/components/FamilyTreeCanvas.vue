@@ -33,34 +33,27 @@ import FamilyGroupNode from './FamilyGroupNode.vue';
 import { treeApi } from '../api';
 import { useRouter } from 'vue-router';
 
-// defineProps với TypeScript generic — khai báo kiểu prop mà không cần runtime validator
 const props = defineProps<{ focusPersonId?: string | null }>();
-// defineEmits với TypeScript generic — khai báo event emit type-safe
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
-// Destructure API từ VueFlow instance theo id 'family-tree' (khớp với id trên <VueFlow>)
 const { fitView, setCenter, viewport } = useVueFlow('family-tree');
 const router = useRouter();
 
-// ref() bọc array/primitive — truy cập qua .value, Vue theo dõi thay đổi toàn bộ .value
 const rawNodes = ref<any[]>([]);
 const rawEdges = ref<any[]>([]);
 const loading = ref(true);
 const error = ref('');
 
-// reactive() dùng thay vì ref() vì Set được mutate tại chỗ (.add/.delete), không cần thay .value
-// Tập hợp ID của những người mà cây con bên dưới họ đang bị ẩn
+// collapsed: set of person IDs whose children are hidden
 const collapsed = reactive(new Set<string>());
 
-// ref() vì buildMaps gán toàn bộ Map mới vào .value — Vue cần bắt được sự thay thế này
-// personId → danh sách ID con trực tiếp (xây từ edges, dùng cho BFS thu gọn)
+// personId → direct child personIds (for collapse traversal)
 const parentToChildren = ref(new Map<string, string[]>());
-// connectorId → danh sách ID con trực tiếp của connector đó
+// connectorId → direct child personIds
 const connectorChildren = ref(new Map<string, string[]>());
-// connectorId → danh sách ID bố/mẹ vợ chồng (những người "sở hữu" node connector)
+// connectorId → spouse parent personIds
 const connectorParents = ref(new Map<string, string[]>());
 
-// markRaw ngăn Vue theo dõi reactive cho các component type (yêu cầu của VueFlow)
 const nodeTypes = {
   person: markRaw(PersonNode),
   spouseConnector: markRaw(SpouseConnector),
@@ -69,16 +62,12 @@ const nodeTypes = {
 
 // --- Relationship maps ---
 
-// Duyệt edges 2 lần để xây 3 map tra cứu:
-//   Lần 1: edge vợ chồng (person → connector) → đảo ngược thành connector → [danh sách vợ/chồng]
-//   Lần 2: edge cha/mẹ-con → điền person→children và connector→children
-// Ba map này cho phép tìm toàn bộ hậu duệ của bất kỳ người nào để phục vụ logic thu gọn.
 function buildMaps(edges: any[]) {
-  const cp = new Map<string, string[]>(); // connector → các bố/mẹ vợ chồng
-  const p2c = new Map<string, string[]>(); // person → con trực tiếp
-  const cc = new Map<string, string[]>();  // connector → con trực tiếp
+  const cp = new Map<string, string[]>(); // connector → spouse parents
+  const p2c = new Map<string, string[]>();
+  const cc = new Map<string, string[]>();
 
-  // Lần 1: mỗi edge vợ chồng đi person → connector; đảo lại thành connector → [persons]
+  // Pass 1: connector → its parent persons (from spouse edges)
   for (const e of edges) {
     if (e.type === 'spouse') {
       if (!cp.has(e.target)) cp.set(e.target, []);
@@ -86,14 +75,13 @@ function buildMaps(edges: any[]) {
     }
   }
 
-  // Lần 2: edge parentChild có thể xuất phát từ connector hoặc từ một người đơn lẻ
+  // Pass 2: person → children, connector → children
   for (const e of edges) {
     if (e.type !== 'parentChild') continue;
     if (e.source.startsWith('connector-')) {
       if (!cc.has(e.source)) cc.set(e.source, []);
       if (!cc.get(e.source)!.includes(e.target)) cc.get(e.source)!.push(e.target);
     }
-    // Ánh xạ từng người bố/mẹ (hoặc bố/mẹ đơn) sang con để BFS thu gọn hoạt động đúng
     const parents = cp.get(e.source) ?? [e.source];
     for (const parentId of parents) {
       if (!p2c.has(parentId)) p2c.set(parentId, []);
@@ -106,7 +94,6 @@ function buildMaps(edges: any[]) {
   connectorChildren.value = cc;
 }
 
-// BFS qua parentToChildren để lấy TẤT CẢ hậu duệ của một người (không chỉ con trực tiếp)
 function getDescendants(id: string): Set<string> {
   const result = new Set<string>();
   const queue = [...(parentToChildren.value.get(id) ?? [])];
@@ -129,8 +116,6 @@ function toggleCollapse(id: string) {
 
 // --- Derived visibility ---
 
-// computed<Set<string>>() — generic type rõ ràng giúp TypeScript suy luận đúng kiểu trả về
-// computed() cache kết quả, chỉ tính lại khi collapsed hoặc parentToChildren thay đổi
 const hiddenPersonIds = computed<Set<string>>(() => {
   const hidden = new Set<string>();
   for (const id of collapsed) {
@@ -139,16 +124,15 @@ const hiddenPersonIds = computed<Set<string>>(() => {
   return hidden;
 });
 
-// Một connector bị ẩn khi:
-//   - bất kỳ người bố/mẹ vợ chồng nào của nó bị ẩn (cặp vợ chồng biến mất cùng nhau), HOẶC
-//   - nó có con nhưng tất cả con đều đã bị ẩn (connector sẽ bị treo lơ lửng)
 const hiddenConnectorIds = computed<Set<string>>(() => {
   const hidden = new Set<string>();
   for (const [connId, spouseIds] of connectorParents.value) {
+    // Hide connector if any spouse-parent is hidden
     if (spouseIds.some(s => hiddenPersonIds.value.has(s))) {
       hidden.add(connId);
       continue;
     }
+    // Also hide if connector has children and all of them are hidden
     const children = connectorChildren.value.get(connId) ?? [];
     if (children.length > 0 && children.every(c => hiddenPersonIds.value.has(c))) {
       hidden.add(connId);
@@ -165,8 +149,6 @@ function isHidden(id: string): boolean {
 
 // --- Computed display data ---
 
-// computed() merge rawNodes + trạng thái collapse thành node array cho VueFlow
-// .map() không mutate rawNodes — tạo array mới mỗi lần tính
 const displayNodes = computed(() =>
   rawNodes.value.map(n => {
     // Family group background panel — always visible, non-interactive, renders behind
@@ -185,7 +167,6 @@ const displayNodes = computed(() =>
     }
     const hasChildren = (parentToChildren.value.get(n.id) ?? []).length > 0;
     const isCollapsed = collapsed.has(n.id);
-    // hiddenCount hiển thị trên nút thu gọn để người dùng biết có bao nhiêu node đang bị ẩn
     const hiddenCount = isCollapsed ? getDescendants(n.id).size : 0;
     return {
       ...n,
@@ -195,7 +176,6 @@ const displayNodes = computed(() =>
         hasChildren,
         isCollapsed,
         hiddenCount,
-        // Truyền callback qua data để PersonNode có thể kích hoạt mà không cần biết component cha
         onToggleCollapse: toggleCollapse,
         isCurrentUser: n.id === props.focusPersonId,
       },
@@ -207,7 +187,6 @@ const displayEdges = computed(() =>
   rawEdges.value.map(e => ({
     ...e,
     hidden: isHidden(e.source) || isHidden(e.target),
-    // VueFlow dùng tên kiểu string: 'default' = đường cong bezier, 'straight' = đường thẳng
     type: e.type === 'parentChild' ? 'default' : 'straight',
     style: e.type === 'parentChild'
       ? { stroke: '#0969da', strokeWidth: 2 }
@@ -221,9 +200,6 @@ const displayEdges = computed(() =>
 
 // --- Load & fit ---
 
-// requestAnimationFrame — callback chạy ngay trước khi browser vẽ frame tiếp theo
-// Lồng 2 lần để đảm bảo VueFlow đã đo kích thước node SAU KHI layout lần đầu hoàn tất
-// Chờ 2 animation frame để VueFlow đo xong kích thước node trước khi gọi fitView/setCenter
 function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))); }
 
 function focusOnNode(id: string) {
@@ -233,8 +209,6 @@ function focusOnNode(id: string) {
 
 const personNodes = computed(() => rawNodes.value.filter(n => n.type === 'person'));
 
-// Nếu người dùng đăng nhập có liên kết với một người trong cây, ưu tiên focus vào card đó.
-// Nếu không thì fall back sang các node thế hệ 1, cuối cùng mới fitView toàn cây.
 function focusOnPerson() {
   const focusId = props.focusPersonId;
   if (focusId) {
@@ -259,7 +233,7 @@ async function loadTree() {
     rawNodes.value = res.data.nodes;
     rawEdges.value = res.data.edges;
     buildMaps(res.data.edges);
-    // nextTick chờ Vue cập nhật DOM xong; hai rAF tiếp theo chờ VueFlow hoàn thành layout
+    // Wait for Vue to flush DOM updates, then two paint frames for VueFlow to measure nodes
     await nextTick();
     await rAF();
     focusOnPerson();
@@ -270,15 +244,10 @@ async function loadTree() {
   }
 }
 
-// onMounted — Vue lifecycle hook, chạy sau khi component được gắn vào DOM
 onMounted(loadTree);
-// defineExpose() cần thiết với <script setup> để component cha dùng ref template truy cập được
-// readonly() bọc computed thành read-only, tránh component cha vô tình mutate
-// Expose reload cho TreePage (gọi sau khi lưu), focusOnNode cho tìm kiếm, personNodes cho thống kê
 defineExpose({ reload: loadTree, focusOnNode, personNodes: readonly(personNodes) });
 
 function onNodeClick(event: NodeMouseEvent) {
-  // Click vào connector vợ chồng sẽ điều hướng đến trang media chung của cặp đó
   if (event.node.type === 'spouseConnector') {
     const relId = event.node.id.replace('connector-', '');
     router.push(`/relationships/${relId}/media`);

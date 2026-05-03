@@ -163,22 +163,16 @@ import { statsApi } from '../api';
 
 const auth = useAuthStore();
 const router = useRouter();
-// storeToRefs() trích xuất ref từ Pinia store, giữ nguyên reactivity
-// nếu destructure thẳng (const { isEditor } = auth) sẽ mất reactive
 const { isEditor } = storeToRefs(auth);
 
 const selectedPersonId = ref<string | null>(null);
 const showForm = ref(false);
 const editingPerson = ref<any>(null);
 const preRelation = ref<any>(null);
-// Tăng để buộc VueFlow remount và tải lại dữ liệu cây sau khi lưu
 const treeKey = ref(0);
-// Tăng để báo PersonDrawer tải lại dữ liệu mà không thay đổi ID người đang xem
 const drawerVersion = ref(0);
 const fanView = ref(false);
 const mapView = ref(false);
-// ref template — Vue tự động gán component instance vào đây khi component con mount
-// kiểu TypeScript khớp với defineExpose() bên trong FamilyTreeCanvas/FanChartCanvas
 const canvasRef = ref<{
   reload: () => void;
   focusOnNode: (id: string) => void;
@@ -187,8 +181,6 @@ const canvasRef = ref<{
 const stats = ref({ totalVisits: 0, onlineNow: 0 });
 const remindersDismissed = ref(false);
 
-// Trả về số ngày đến lần xuất hiện tiếp theo trong năm của (tháng dương, ngày).
-// Cộng thêm 1 năm nếu ngày đó đã qua trong năm hiện tại.
 function daysUntilNextOccurrence(month: number, day: number): number {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -197,94 +189,8 @@ function daysUntilNextOccurrence(month: number, day: number): number {
   return Math.round((target.getTime() - todayStart.getTime()) / 86400000);
 }
 
-// ─── Chuyển đổi âm lịch → dương lịch (thuật toán Hồ Ngọc Đức, múi giờ +7) ───
-// Múi giờ Việt Nam UTC+7
-const VN_TZ = 7;
-function _jd(dd: number, mm: number, yy: number) {
-  const a = Math.floor((14 - mm) / 12), y = yy + 4800 - a, m = mm + 12 * a - 3;
-  let j = dd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-  if (j < 2299161) j = dd + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - 32083;
-  return j;
-}
-function _jdToDate(jd: number): [number, number, number] {
-  let a, b, c;
-  if (jd > 2299160) { a = jd + 32044; b = Math.floor((4 * a + 3) / 146097); c = a - Math.floor(146097 * b / 4); }
-  else { b = 0; c = jd + 32082; }
-  const d = Math.floor((4 * c + 3) / 1461), e = c - Math.floor(1461 * d / 4), m = Math.floor((5 * e + 2) / 153);
-  return [e - Math.floor((153 * m + 2) / 5) + 1, m + 3 - 12 * Math.floor(m / 10), 100 * b + d - 4800 + Math.floor(m / 10)];
-}
-function _newMoon(k: number) {
-  const dr = Math.PI / 180, T = k / 1236.85, T2 = T * T, T3 = T2 * T;
-  let jd = 2415020.75933 + 29.53058868 * k + 0.0001178 * T2 - 0.000000155 * T3
-    + 0.00033 * Math.sin((166.56 + 132.87 * T - 0.009173 * T2) * dr);
-  const M = 359.2242 + 29.10535608 * k - 0.0000333 * T2 - 0.00000347 * T3;
-  const Mpr = 306.0253 + 385.81691806 * k + 0.0107306 * T2 + 0.00001236 * T3;
-  const F = 21.2964 + 390.67050646 * k - 0.0016528 * T2 - 0.00000239 * T3;
-  let C = (0.1734 - 0.000393 * T) * Math.sin(dr * M) + 0.0021 * Math.sin(2 * dr * M)
-    - 0.4068 * Math.sin(dr * Mpr) + 0.0161 * Math.sin(2 * dr * Mpr) - 0.0004 * Math.sin(3 * dr * Mpr)
-    + 0.0104 * Math.sin(2 * dr * F) - 0.0051 * Math.sin(dr * (M + Mpr)) - 0.0074 * Math.sin(dr * (M - Mpr))
-    + 0.0004 * Math.sin(dr * (2 * F + M)) - 0.0004 * Math.sin(dr * (2 * F - M))
-    - 0.0006 * Math.sin(dr * (2 * F + Mpr)) + 0.001 * Math.sin(dr * (2 * F - Mpr)) + 0.0005 * Math.sin(dr * (M + 2 * Mpr));
-  const dt = T < -11
-    ? 0.001 + 0.000839 * T + 0.0002261 * T2 - 0.00000845 * T3 - 0.000000081 * T * T3
-    : -0.000278 + 0.000265 * T + 0.000262 * T2;
-  return Math.floor(jd + C - dt + 0.5 + VN_TZ / 24);
-}
-function _sunLong(jdn: number) {
-  const dr = Math.PI / 180, T = (jdn - 2451545.5 - VN_TZ / 24) / 36525, T2 = T * T;
-  const M = 357.5291 + 35999.0503 * T - 0.0001559 * T2;
-  const L = 280.46645 + 36000.76983 * T + 0.0003032 * T2
-    + (1.9146 - 0.004817 * T - 0.000014 * T2) * Math.sin(dr * M)
-    + (0.019993 - 0.000101 * T) * Math.sin(2 * dr * M) + 0.00029 * Math.sin(3 * dr * M);
-  return Math.floor(((L % 360) + 360) % 360 / 30);
-}
-function _month11(yy: number) {
-  const k = Math.floor((_jd(31, 12, yy) - 2415021) / 29.530588853);
-  let nm = _newMoon(k);
-  if (_sunLong(nm) >= 9) nm = _newMoon(k - 1);
-  return nm;
-}
-function _leapOff(a11: number) {
-  const k = Math.floor((a11 - 2415021.076998695) / 29.530588853 + 0.5);
-  let i = 1, arc = _sunLong(_newMoon(k + i)), last;
-  do { last = arc; i++; arc = _sunLong(_newMoon(k + i)); } while (arc !== last && i < 14);
-  return i - 1;
-}
-// Chuyển ngày âm (lunarDay, lunarMonth, lunarYear) → [ngày, tháng, năm] dương lịch
-function lunarToSolar(lunarDay: number, lunarMonth: number, lunarYear: number): [number, number, number] {
-  const a11 = lunarMonth < 11 ? _month11(lunarYear - 1) : _month11(lunarYear);
-  const b11 = lunarMonth < 11 ? _month11(lunarYear) : _month11(lunarYear + 1);
-  const k = Math.floor(0.5 + (a11 - 2415021.076998695) / 29.530588853);
-  let off = lunarMonth - 11; if (off < 0) off += 12;
-  if (b11 - a11 > 365) {
-    const lOff = _leapOff(a11);
-    let lm = lOff - 2; if (lm < 0) lm += 12;
-    if (off >= lOff) off += 1;
-  }
-  return _jdToDate(_newMoon(k + off) + lunarDay - 1);
-}
-
-// Trả về số ngày cho đến ngày giỗ (âm lịch) tiếp theo.
-// Năm mất chỉ dùng để hiển thị, không ảnh hưởng tính anniversary — giỗ luôn lặp mỗi năm.
-// Thử chuyển sang năm dương hiện tại; nếu đã qua thì dùng năm sau.
-function daysUntilLunarAnniversary(lunarMonth: number, lunarDay: number, _lunarYear?: number): number {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  for (let yearOffset = 0; yearOffset <= 1; yearOffset++) {
-    const yr = now.getFullYear() + yearOffset;
-    try {
-      const [dd, mm, yy] = lunarToSolar(lunarDay, lunarMonth, yr);
-      const target = new Date(yy, mm - 1, dd);
-      if (target >= todayStart) return Math.round((target.getTime() - todayStart.getTime()) / 86400000);
-    } catch { /* ngày âm không hợp lệ trong năm đó — bỏ qua */ }
-  }
-  return 999;
-}
-
-// Tổng số người hiển thị trên banner; lấy từ danh sách node sống của canvas
 const totalPersonCount = computed(() => canvasRef.value?.personNodes?.length ?? 0);
 
-// Quét tất cả người để tìm sinh nhật và ngày giỗ trong vòng 7 ngày tới
 const reminders = computed(() => {
   const nodes: any[] = canvasRef.value?.personNodes ?? [];
   const result: { type: 'birthday' | 'death'; person: any; daysUntil: number }[] = [];
@@ -295,11 +201,7 @@ const reminders = computed(() => {
       const d = daysUntilNextOccurrence(bd.getUTCMonth(), bd.getUTCDate());
       if (d <= 7) result.push({ type: 'birthday', person: p, daysUntil: d });
     }
-    // Ưu tiên ngày âm lịch; fallback sang deathDate dương lịch cho dữ liệu cũ
-    if (p.deathLunarMonth && p.deathLunarDay) {
-      const d = daysUntilLunarAnniversary(p.deathLunarMonth, p.deathLunarDay, p.deathLunarYear ?? undefined);
-      if (d <= 7) result.push({ type: 'death', person: p, daysUntil: d });
-    } else if (p.deathDate) {
+    if (p.deathDate) {
       const dd = new Date(p.deathDate);
       const d = daysUntilNextOccurrence(dd.getUTCMonth(), dd.getUTCDate());
       if (d <= 7) result.push({ type: 'death', person: p, daysUntil: d });
@@ -311,7 +213,6 @@ const reminders = computed(() => {
 const searchQuery = ref('');
 const searchActive = ref(false);
 
-// Bỏ dấu tiếng Việt và chuẩn hoá đ → d để "nguyen" có thể khớp được "Nguyễn"
 function normalize(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase();
 }
@@ -325,7 +226,6 @@ const searchResults = computed(() => {
     .slice(0, 8);
 });
 
-// Delay 200ms để sự kiện mousedown trên item dropdown kịp kích hoạt trước khi blur đóng danh sách
 function handleSearchBlur() { setTimeout(() => { searchActive.value = false; }, 200); }
 function clearSearch() { searchQuery.value = ''; searchActive.value = false; }
 function selectResult(node: any) {
@@ -334,35 +234,27 @@ function selectResult(node: any) {
   clearSearch();
 }
 
-// ReturnType<typeof setInterval> — lấy kiểu trả về của setInterval để tương thích Node và Browser
-// lưu id interval để clearInterval đúng khi unmount, tránh memory leak
 let pingInterval: ReturnType<typeof setInterval> | null = null;
 
-// onMounted — Vue lifecycle hook, chạy sau khi component được gắn vào DOM
 onMounted(async () => {
   try {
-    // Ping đầu tiên với isNew=true để đăng ký lượt truy cập vào bộ đếm thống kê
     const res = await statsApi.ping(true);
     stats.value = res.data;
-  } catch { /* không quan trọng — bỏ qua lỗi */ }
-  // Các ping tiếp theo (isNew=false) chỉ cập nhật số người đang online, mỗi phút một lần
+  } catch { /* ignore */ }
   pingInterval = setInterval(async () => {
     try {
       const res = await statsApi.ping(false);
       stats.value = res.data;
     } catch { /* ignore */ }
   }, 60_000);
-  // beforeunload — kích hoạt khi user đóng tab, reload trang hoặc navigate sang trang khác
   window.addEventListener('beforeunload', sendLeave);
 });
 
-// onUnmounted — dọn dẹp interval và event listener để tránh memory leak khi component bị huỷ
 onUnmounted(() => {
   if (pingInterval) clearInterval(pingInterval);
   window.removeEventListener('beforeunload', sendLeave);
 });
 
-// keepalive đảm bảo request hoàn thành dù trình duyệt đã bắt đầu thoát trang
 function sendLeave() {
   const token = localStorage.getItem('token');
   if (!token) return;
@@ -374,16 +266,13 @@ function sendLeave() {
 }
 
 function openAddForm() { preRelation.value = null; editingPerson.value = null; showForm.value = true; }
-// Đóng drawer trước để tránh bị chồng lên trên form chỉnh sửa
 function openEditForm(person: any) { selectedPersonId.value = null; preRelation.value = null; editingPerson.value = person; showForm.value = true; }
 function closeForm() { showForm.value = false; editingPerson.value = null; preRelation.value = null; }
 function handleAddRelative(data: any) { preRelation.value = data; editingPerson.value = null; selectedPersonId.value = null; showForm.value = true; }
 async function onSaved() {
   const savedId = editingPerson.value?.id ?? null;
   closeForm();
-  // Đổi key để buộc canvas tải lại toàn bộ cây
   refreshTree();
-  // Mở lại drawer cho người vừa lưu; tăng version để buộc tải lại dữ liệu
   if (savedId) { selectedPersonId.value = savedId; drawerVersion.value++; }
 }
 function refreshTree() { treeKey.value++; }
