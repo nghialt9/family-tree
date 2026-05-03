@@ -32,6 +32,6 @@ export function generateSignature(params: {
 }
 
 export async function deleteMedia(cloudinaryId: string, resourceType: string): Promise<void> {
-  const type = resourceType === 'IMAGE' ? 'image' : resourceType === 'VIDEO' ? 'video' : 'raw';
-  await cloudinary.uploader.destroy(cloudinaryId, { resource_type: type as any });
+  const type: 'image' | 'video' | 'raw' = resourceType === 'IMAGE' ? 'image' : resourceType === 'VIDEO' ? 'video' : 'raw';
+  await cloudinary.uploader.destroy(cloudinaryId, { resource_type: type });
 }
