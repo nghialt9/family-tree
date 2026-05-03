@@ -13,9 +13,13 @@ router.get('/sign', requireViewer, (req: AuthRequest, res) => {
     res.status(400).json({ error: 'resourceType and personId required' });
     return;
   }
-  const folder = `family-tree/persons/${personId}`;
-  const result = generateSignature({ folder, resourceType });
-  res.json(result);
+  try {
+    const folder = `family-tree/persons/${personId}`;
+    const result = generateSignature({ folder, resourceType });
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // GET / — admin moderation queue
@@ -24,6 +28,11 @@ router.get('/', requireAdmin, async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
   const skip = (page - 1) * limit;
+
+  const validStatuses = ['PENDING', 'APPROVED', 'REJECTED', 'ALL'];
+  if (rawStatus && !validStatuses.includes(rawStatus)) {
+    res.status(400).json({ error: 'Invalid status value' }); return;
+  }
 
   const where: Record<string, unknown> = {};
   if (rawStatus && rawStatus !== 'ALL') where.status = rawStatus;
@@ -55,8 +64,9 @@ router.patch('/:id/status', requireAdmin, async (req, res) => {
       data: { status },
     });
     res.json(media);
-  } catch {
-    res.status(404).json({ error: 'Not found' });
+  } catch (e: any) {
+    if (e.code === 'P2025') { res.status(404).json({ error: 'Not found' }); return; }
+    res.status(500).json({ error: e.message });
   }
 });
 
