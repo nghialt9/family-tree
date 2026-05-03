@@ -65,7 +65,7 @@ interface UploadData {
 }
 
 export const mediaApi = {
-  sign: (params: { resourceType: string; personId?: string; relationshipId?: string }) =>
+  sign: (params: { resourceType: string; personId?: string; relationshipId?: string; albumId?: string }) =>
     api.get('/media/sign', { params }),
 
   confirmUpload: (personId: string, data: UploadData) =>
@@ -88,4 +88,40 @@ export const mediaApi = {
 
   adminQueue: (params?: { status?: string; page?: number; limit?: number }) =>
     api.get('/media', { params }),
+};
+
+export const albumsApi = {
+  list: (params?: { status?: string; personId?: string; page?: number; limit?: number }) =>
+    api.get('/albums', { params }),
+
+  create: (data: { title: string; description?: string; personId?: string }) =>
+    api.post('/albums', data),
+
+  get: (id: string) =>
+    api.get(`/albums/${id}`),
+
+  update: (id: string, data: { title?: string; description?: string; coverMediaId?: string }) =>
+    api.put(`/albums/${id}`, data),
+
+  delete: (id: string) =>
+    api.delete(`/albums/${id}`),
+
+  updateStatus: (id: string, status: 'APPROVED' | 'REJECTED') =>
+    api.patch(`/albums/${id}/status`, { status }),
+
+  addMedia: (id: string, data: {
+    mediaId?: string;
+    cloudinaryId?: string;
+    url?: string;
+    resourceType?: string;
+    format?: string;
+    bytes?: number;
+    caption?: string;
+  }) => api.post(`/albums/${id}/media`, data),
+
+  removeMedia: (id: string, mediaId: string) =>
+    api.delete(`/albums/${id}/media/${mediaId}`),
+
+  listByPerson: (personId: string) =>
+    api.get(`/persons/${personId}/albums`),
 };

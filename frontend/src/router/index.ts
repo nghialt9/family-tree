@@ -27,6 +27,16 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/albums',
+      component: () => import('../pages/AlbumsPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/albums/:id',
+      component: () => import('../pages/AlbumPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/admin/media',
       component: () => import('../pages/AdminMediaPage.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
