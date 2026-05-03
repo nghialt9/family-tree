@@ -9,7 +9,7 @@
       <button :class="['tab', { active: activeTab === 'media' }]" @click="activeTab = 'media'">Media</button>
       <button :class="['tab', { active: activeTab === 'albums' }]" @click="activeTab = 'albums'">
         Albums
-        <span v-if="pendingAlbums.filter(a => a.status === 'PENDING').length" class="badge">{{ pendingAlbums.filter(a => a.status === 'PENDING').length }}</span>
+        <span v-if="pendingAlbumsCount" class="badge">{{ pendingAlbumsCount }}</span>
       </button>
     </div>
 
@@ -104,7 +104,7 @@
             <td><router-link :to="`/albums/${a.id}`" class="person-link">{{ a.title }}</router-link></td>
             <td>{{ a.createdBy }}</td>
             <td>{{ a.person?.fullName ?? '—' }}</td>
-            <td><span class="status-badge" :class="a.status.toLowerCase()">{{ a.status === 'PENDING' ? 'Chờ duyệt' : a.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối' }}</span></td>
+            <td><span class="status-badge" :class="a.status.toLowerCase()">{{ statusLabel(a.status) }}</span></td>
             <td class="date-cell">{{ formatDate(a.createdAt) }}</td>
             <td>
               <div v-if="a.status === 'PENDING'" class="actions">
@@ -140,6 +140,7 @@ const pendingAlbums = ref<any[]>([]);
 const albumsLoading = ref(false);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / LIMIT)));
+const pendingAlbumsCount = computed(() => pendingAlbums.value.filter((a: any) => a.status === 'PENDING').length);
 
 onMounted(() => { fetchMedia(1); fetchAlbums(); });
 
@@ -154,9 +155,14 @@ async function fetchMedia(p: number) {
 
 async function fetchAlbums() {
   albumsLoading.value = true;
-  const res = await albumsApi.list({ status: 'PENDING' });
-  pendingAlbums.value = res.data.data;
-  albumsLoading.value = false;
+  try {
+    const res = await albumsApi.list({ status: 'PENDING' });
+    pendingAlbums.value = res.data.data;
+  } catch {
+    // keep pendingAlbums empty on error
+  } finally {
+    albumsLoading.value = false;
+  }
 }
 
 async function moderateAlbum(albumId: string, status: 'APPROVED' | 'REJECTED') {
