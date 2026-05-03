@@ -40,6 +40,10 @@
                 <a :href="'mailto:' + person.email" class="phone-link">{{ person.email }}</a>
               </div>
             </div>
+            <div v-if="person.hometown" class="info-row">
+              <span class="icon">🏘</span>
+              <div><div class="info-label">Quê quán</div><div>{{ person.hometown }}</div></div>
+            </div>
             <div v-if="person.address" class="info-row">
               <span class="icon">📍</span>
               <div><div class="info-label">Địa chỉ</div><div>{{ person.address }}</div></div>
