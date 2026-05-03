@@ -8,19 +8,22 @@ const router = Router();
 
 // GET /sign — all authenticated users
 router.get('/sign', requireViewer, (req: AuthRequest, res) => {
-  const { resourceType, personId, relationshipId } = req.query as {
+  const { resourceType, personId, relationshipId, albumId } = req.query as {
     resourceType?: string;
     personId?: string;
     relationshipId?: string;
+    albumId?: string;
   };
 
-  const err = validateSignParams({ resourceType, personId, relationshipId });
+  const err = validateSignParams({ resourceType, personId, relationshipId, albumId });
   if (err) { res.status(400).json({ error: err }); return; }
 
   try {
     const folder = personId
       ? `family-tree/persons/${personId}`
-      : `family-tree/relationships/${relationshipId}`;
+      : relationshipId
+        ? `family-tree/relationships/${relationshipId}`
+        : `family-tree/albums/${albumId}`;
     const result = generateSignature({ folder, resourceType: resourceType! });
     res.json(result);
   } catch (e: any) {

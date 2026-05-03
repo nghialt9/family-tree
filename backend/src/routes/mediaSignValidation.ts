@@ -2,12 +2,12 @@ export function validateSignParams(params: {
   resourceType?: string;
   personId?: string;
   relationshipId?: string;
+  albumId?: string;
 }): string | null {
   if (!params.resourceType) return 'resourceType is required';
-  const hasPersonId = !!params.personId;
-  const hasRelationshipId = !!params.relationshipId;
-  if (hasPersonId === hasRelationshipId) {
-    return 'Exactly one of personId or relationshipId is required';
+  const count = [params.personId, params.relationshipId, params.albumId].filter(Boolean).length;
+  if (count !== 1) {
+    return 'Exactly one of personId, relationshipId, or albumId is required';
   }
   return null;
 }
