@@ -31,6 +31,7 @@ export const personsApi = {
 export const relationshipsApi = {
   create: (data: unknown) => api.post('/relationships', data),
   delete: (id: string) => api.delete(`/relationships/${id}`),
+  get: (id: string) => api.get(`/relationships/${id}`),
 };
 
 export const treeApi = {
@@ -54,24 +55,30 @@ export const auditApi = {
   }) => api.get('/audit', { params }),
 };
 
+interface UploadData {
+  cloudinaryId: string;
+  url: string;
+  resourceType: string;
+  format: string;
+  bytes: number;
+  caption?: string;
+}
+
 export const mediaApi = {
-  sign: (params: { resourceType: string; personId: string }) =>
+  sign: (params: { resourceType: string; personId?: string; relationshipId?: string }) =>
     api.get('/media/sign', { params }),
 
-  confirmUpload: (
-    personId: string,
-    data: {
-      cloudinaryId: string;
-      url: string;
-      resourceType: string;
-      format: string;
-      bytes: number;
-      caption?: string;
-    }
-  ) => api.post(`/persons/${personId}/media`, data),
+  confirmUpload: (personId: string, data: UploadData) =>
+    api.post(`/persons/${personId}/media`, data),
+
+  confirmRelationshipUpload: (relationshipId: string, data: UploadData) =>
+    api.post(`/relationships/${relationshipId}/media`, data),
 
   listByPerson: (personId: string) =>
     api.get(`/persons/${personId}/media`),
+
+  listByRelationship: (relationshipId: string) =>
+    api.get(`/relationships/${relationshipId}/media`),
 
   updateStatus: (mediaId: string, status: 'APPROVED' | 'REJECTED') =>
     api.patch(`/media/${mediaId}/status`, { status }),

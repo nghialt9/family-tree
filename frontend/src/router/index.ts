@@ -22,6 +22,11 @@ export const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/relationships/:id/media',
+      component: () => import('../pages/RelationshipMediaPage.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/admin/media',
       component: () => import('../pages/AdminMediaPage.vue'),
       meta: { requiresAuth: true, requiresAdmin: true },
