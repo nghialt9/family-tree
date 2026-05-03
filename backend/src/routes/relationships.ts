@@ -1,9 +1,72 @@
 import { Router } from 'express';
-import { requireEditor, AuthRequest } from '../middleware/auth';
+import { requireEditor, requireViewer, AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 import { logAudit } from '../services/auditService';
 
 const router = Router();
+
+// GET /:id — fetch single relationship with person names
+router.get('/:id', requireViewer, async (req, res) => {
+  try {
+    const rel = await prisma.relationship.findUnique({
+      where: { id: req.params.id },
+      include: {
+        personA: { select: { id: true, fullName: true } },
+        personB: { select: { id: true, fullName: true } },
+      },
+    });
+    if (!rel) { res.status(404).json({ error: 'Not found' }); return; }
+    res.json(rel);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /:id/media — list media for a relationship
+router.get('/:id/media', requireViewer, async (req: AuthRequest, res) => {
+  try {
+    const rel = await prisma.relationship.findUnique({ where: { id: req.params.id } });
+    if (!rel) { res.status(404).json({ error: 'Not found' }); return; }
+
+    const isPrivileged = req.user!.role === 'admin' || req.user!.role === 'editor';
+    const where: Record<string, unknown> = { relationshipId: req.params.id };
+    if (!isPrivileged) where.status = 'APPROVED';
+
+    const data = await prisma.media.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+    });
+    res.json({ data });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /:id/media — create media record for a relationship
+router.post('/:id/media', requireViewer, async (req: AuthRequest, res) => {
+  try {
+    const rel = await prisma.relationship.findUnique({ where: { id: req.params.id } });
+    if (!rel) { res.status(404).json({ error: 'Not found' }); return; }
+
+    const { cloudinaryId, url, resourceType, format, bytes, caption } = req.body;
+    const media = await prisma.media.create({
+      data: {
+        relationshipId: req.params.id,
+        cloudinaryId,
+        url,
+        resourceType,
+        format,
+        bytes,
+        caption: caption ?? null,
+        status: 'PENDING',
+        uploadedBy: req.user!.phone,
+      },
+    });
+    res.status(201).json(media);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
 
 router.post('/', requireEditor, async (req: AuthRequest, res) => {
   try {
