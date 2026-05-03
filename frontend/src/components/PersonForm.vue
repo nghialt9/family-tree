@@ -68,9 +68,74 @@
           <label>Email thông báo</label>
           <input v-model="form.email" type="email" placeholder="example@gmail.com" />
         </div>
-        <div class="field">
-          <label>Địa chỉ</label>
-          <input v-model="form.address" />
+        <div class="field full-width location-section">
+          <div class="loc-block">
+            <div class="loc-label">Quê quán</div>
+            <div class="loc-row">
+              <input v-model="form.hometown" class="loc-input" placeholder="VD: Đồng Tháp, Việt Nam" />
+              <button type="button" class="btn-geocode" :disabled="geocodingHometown || !form.hometown.trim()" @click="geocodeHometown">
+                {{ geocodingHometown ? '...' : '📍 Geocode' }}
+              </button>
+              <button v-if="form.homeLat !== null" type="button" class="btn-clear-loc" @click="form.homeLat = null; form.homeLng = null; hometownDisplayName = ''">✕</button>
+            </div>
+            <div v-if="geocodeHometownError" class="geocode-error">{{ geocodeHometownError }}</div>
+            <div v-if="form.homeLat !== null && form.homeLng !== null" class="mini-map-wrap">
+              <l-map
+                :key="`hm-${form.homeLat}-${form.homeLng}`"
+                :zoom="12"
+                :center="[form.homeLat, form.homeLng]"
+                style="height:140px;width:100%"
+                :options="{ attributionControl: false, zoomControl: true }"
+              >
+                <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <l-marker
+                  :lat-lng="[form.homeLat, form.homeLng]"
+                  :icon="dragPinIcon"
+                  :draggable="true"
+                  @moveend="onHometownMarkerMove"
+                />
+              </l-map>
+              <div class="mini-map-info">
+                <span v-if="hometownDisplayName" class="mini-map-display">✓ {{ hometownDisplayName }}</span>
+                <span v-else class="mini-map-display">{{ form.homeLat.toFixed(4) }}°N, {{ form.homeLng.toFixed(4) }}°E</span>
+                <span class="drag-hint">Kéo pin để chỉnh vị trí</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="loc-block">
+            <div class="loc-label">Địa chỉ hiện tại</div>
+            <div class="loc-row">
+              <input v-model="form.address" class="loc-input" placeholder="VD: Q.7, TP.HCM" />
+              <button type="button" class="btn-geocode" :disabled="geocodingCurrent || !form.address.trim()" @click="geocodeCurrent">
+                {{ geocodingCurrent ? '...' : '📍 Geocode' }}
+              </button>
+              <button v-if="form.currentLat !== null" type="button" class="btn-clear-loc" @click="form.currentLat = null; form.currentLng = null; currentDisplayName = ''">✕</button>
+            </div>
+            <div v-if="geocodeCurrentError" class="geocode-error">{{ geocodeCurrentError }}</div>
+            <div v-if="form.currentLat !== null && form.currentLng !== null" class="mini-map-wrap">
+              <l-map
+                :key="`cm-${form.currentLat}-${form.currentLng}`"
+                :zoom="12"
+                :center="[form.currentLat, form.currentLng]"
+                style="height:140px;width:100%"
+                :options="{ attributionControl: false, zoomControl: true }"
+              >
+                <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <l-marker
+                  :lat-lng="[form.currentLat, form.currentLng]"
+                  :icon="dragPinIcon"
+                  :draggable="true"
+                  @moveend="onCurrentMarkerMove"
+                />
+              </l-map>
+              <div class="mini-map-info">
+                <span v-if="currentDisplayName" class="mini-map-display">✓ {{ currentDisplayName }}</span>
+                <span v-else class="mini-map-display">{{ form.currentLat.toFixed(4) }}°N, {{ form.currentLng.toFixed(4) }}°E</span>
+                <span class="drag-hint">Kéo pin để chỉnh vị trí</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="field full-width">
           <label>Tiểu sử / Ghi chú</label>
@@ -149,10 +214,19 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
-import { personsApi, relationshipsApi } from '../api';
+import { personsApi, relationshipsApi, geocodeApi } from '../api';
 import { useAuthStore } from '../stores/auth';
 import AvatarCropper from './AvatarCropper.vue';
 import SearchableSelect from './SearchableSelect.vue';
+import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet';
+import L from 'leaflet';
+
+const dragPinIcon = L.divIcon({
+  html: '<span style="font-size:24px;line-height:1;display:block">📍</span>',
+  className: '',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+});
 
 const auth = useAuthStore();
 const { isAdmin, isEditor, linkedPersonId } = storeToRefs(auth);
@@ -189,11 +263,22 @@ const defaultForm = () => ({
   generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'editor' | 'admin',
   grantPassword: '',
   fatherId: '', motherId: '', spouseId: '',
+  hometown: '',
+  homeLat: null as number | null,
+  homeLng: null as number | null,
+  currentLat: null as number | null,
+  currentLng: null as number | null,
 });
 
 const form = ref(defaultForm());
 const loading = ref(false);
 const error = ref('');
+const geocodingHometown = ref(false);
+const geocodeHometownError = ref('');
+const hometownDisplayName = ref('');
+const geocodingCurrent = ref(false);
+const geocodeCurrentError = ref('');
+const currentDisplayName = ref('');
 const allPersons = ref<any[]>([]);
 
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -245,6 +330,10 @@ watch(() => props.editPerson, async (p) => {
   origRelIds.value = { fatherRelId: '', motherRelId: '', spouseRelId: '' };
   origPersonIds.value = { fatherId: '', motherId: '', spouseId: '' };
   existingAccessRole.value = null;
+  hometownDisplayName.value = '';
+  currentDisplayName.value = '';
+  geocodeHometownError.value = '';
+  geocodeCurrentError.value = '';
   if (p) {
     form.value = {
       ...defaultForm(),
@@ -254,6 +343,11 @@ watch(() => props.editPerson, async (p) => {
       phone: p.phone || '', address: p.address || '', bio: p.bio || '',
       email: p.email || '',
       generation: p.generation,
+      hometown: p.hometown || '',
+      homeLat: p.homeLat ?? null,
+      homeLng: p.homeLng ?? null,
+      currentLat: p.currentLat ?? null,
+      currentLng: p.currentLng ?? null,
     };
     const [rResult, aResult] = await Promise.allSettled([
       personsApi.getRelatives(p.id),
@@ -353,6 +447,64 @@ async function handleRelationships(personId: string) {
   }
 }
 
+async function geocodeHometown() {
+  if (!form.value.hometown.trim()) return;
+  geocodingHometown.value = true;
+  geocodeHometownError.value = '';
+  try {
+    const res = await geocodeApi.search(form.value.hometown);
+    if (!res.data.length) {
+      geocodeHometownError.value = 'Không tìm thấy địa điểm, thử từ khóa khác';
+      return;
+    }
+    const first = res.data[0];
+    form.value.homeLat = first.lat;
+    form.value.homeLng = first.lng;
+    hometownDisplayName.value = first.displayName;
+  } catch (e: any) {
+    geocodeHometownError.value = e.response?.status === 502
+      ? 'Dịch vụ geocoding tạm thời không khả dụng'
+      : 'Lỗi geocoding';
+  } finally {
+    geocodingHometown.value = false;
+  }
+}
+
+async function geocodeCurrent() {
+  if (!form.value.address.trim()) return;
+  geocodingCurrent.value = true;
+  geocodeCurrentError.value = '';
+  try {
+    const res = await geocodeApi.search(form.value.address);
+    if (!res.data.length) {
+      geocodeCurrentError.value = 'Không tìm thấy địa điểm, thử từ khóa khác';
+      return;
+    }
+    const first = res.data[0];
+    form.value.currentLat = first.lat;
+    form.value.currentLng = first.lng;
+    currentDisplayName.value = first.displayName;
+  } catch (e: any) {
+    geocodeCurrentError.value = e.response?.status === 502
+      ? 'Dịch vụ geocoding tạm thời không khả dụng'
+      : 'Lỗi geocoding';
+  } finally {
+    geocodingCurrent.value = false;
+  }
+}
+
+function onHometownMarkerMove(event: any) {
+  const { lat, lng } = event.target.getLatLng();
+  form.value.homeLat = lat;
+  form.value.homeLng = lng;
+}
+
+function onCurrentMarkerMove(event: any) {
+  const { lat, lng } = event.target.getLatLng();
+  form.value.currentLat = lat;
+  form.value.currentLng = lng;
+}
+
 async function handleSubmit() {
   loading.value = true; error.value = '';
   try {
@@ -385,8 +537,13 @@ async function handleSubmit() {
       phone: form.value.phone || undefined,
       email: form.value.email || undefined,
       nickname: form.value.nickname || undefined,
-      address: form.value.address || undefined,
+      address: form.value.address,
       bio: form.value.bio || undefined,
+      hometown: form.value.hometown,
+      homeLat: form.value.homeLat,
+      homeLng: form.value.homeLng,
+      currentLat: form.value.currentLat,
+      currentLng: form.value.currentLng,
       grantAccess,
       grantRole,
       grantPassword,
@@ -465,4 +622,20 @@ textarea { resize: vertical; }
 .buttons button[type=submit]:hover { background: #2c974b; }
 .buttons button:disabled { opacity: 0.6; cursor: not-allowed; }
 .error { color: #cf222e; font-size: 12px; }
+.location-section { display: flex; flex-direction: column; gap: 16px; }
+.loc-block { display: flex; flex-direction: column; gap: 6px; }
+.loc-label { font-size: 11px; font-weight: 600; color: #57606a; text-transform: uppercase; letter-spacing: 0.4px; }
+.loc-row { display: flex; gap: 6px; align-items: center; }
+.loc-input { flex: 1; height: 32px; padding: 0 8px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 13px; }
+.loc-input:focus { outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
+.btn-geocode { padding: 5px 10px; background: #0969da; color: #fff; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.btn-geocode:hover:not(:disabled) { background: #0860ca; }
+.btn-geocode:disabled { background: #8c959f; cursor: default; }
+.btn-clear-loc { padding: 5px 8px; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; font-size: 12px; cursor: pointer; color: #57606a; }
+.btn-clear-loc:hover { background: #ffebe9; border-color: #ffcecb; color: #cf222e; }
+.geocode-error { font-size: 11px; color: #cf222e; }
+.mini-map-wrap { border: 1px solid #54aeff; border-radius: 6px; overflow: hidden; }
+.mini-map-info { padding: 4px 8px; background: #f0f9ff; border-top: 1px solid #54aeff; font-size: 11px; color: #0969da; display: flex; justify-content: space-between; align-items: center; }
+.mini-map-display { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%; }
+.drag-hint { color: #57606a; font-style: italic; flex-shrink: 0; }
 </style>
