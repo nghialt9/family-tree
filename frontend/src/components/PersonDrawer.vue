@@ -75,6 +75,12 @@
             </div>
           </div>
 
+          <div v-if="auth.token" class="media-link-row">
+            <router-link :to="`/persons/${person.id}/media`" class="btn-media">
+              🖼 Xem media
+            </router-link>
+          </div>
+
           <div v-if="isEditor" class="admin-actions">
             <button class="btn-edit" @click="$emit('editPerson', person)">✏️ Sửa</button>
             <button v-if="isAdmin" class="btn-delete" @click="handleDelete">🗑️ Xóa</button>
@@ -172,4 +178,7 @@ h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
 .loading { text-align: center; padding: 40px; color: #57606a; }
 .drawer-enter-active, .drawer-leave-active { transition: transform 0.3s ease; }
 .drawer-enter-from, .drawer-leave-to { transform: translateX(100%); }
+.media-link-row { margin-top: 12px; }
+.btn-media { display: inline-block; padding: 8px 16px; background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; border-radius: 6px; font-size: 13px; text-decoration: none; font-weight: 500; }
+.btn-media:hover { background: #ddf4ff; border-color: #54aeff; }
 </style>

@@ -40,6 +40,14 @@
         <span v-if="auth.personName || auth.userPhone" class="user-greeting">
           👤 {{ auth.personName ?? auth.userPhone }}
         </span>
+        <router-link v-if="auth.isAdmin" to="/admin/audit" class="btn-audit">
+          <span class="btn-full">📋 Audit</span>
+          <span class="btn-short">📋</span>
+        </router-link>
+        <router-link v-if="auth.isAdmin" to="/admin/media" class="btn-admin-media">
+          <span class="btn-full">🖼 Media</span>
+          <span class="btn-short">🖼</span>
+        </router-link>
         <button v-if="isEditor" class="btn-add" @click="openAddForm">
           <span class="btn-full">+ Thêm người</span>
           <span class="btn-short">+</span>
@@ -82,13 +90,27 @@
       <button class="reminder-close" @click.stop="remindersDismissed = true">✕</button>
     </div>
 
-    <!-- Tree canvas -->
-    <FamilyTreeCanvas
-      :key="treeKey"
-      ref="canvasRef"
-      :focus-person-id="auth.linkedPersonId"
-      @select-person="selectedPersonId = $event"
-    />
+    <!-- Canvas area -->
+    <div class="canvas-area">
+      <FamilyTreeCanvas
+        v-if="!fanView"
+        :key="treeKey"
+        ref="canvasRef"
+        :focus-person-id="auth.linkedPersonId"
+        @select-person="selectedPersonId = $event"
+      />
+      <FanChartCanvas
+        v-else
+        :key="'fan-' + treeKey"
+        ref="canvasRef"
+        @select-person="selectedPersonId = $event"
+      />
+      <button
+        class="view-toggle"
+        @click="fanView = !fanView"
+        :title="fanView ? 'Chuyển về Tree view' : 'Chuyển sang Fan Chart'"
+      >{{ fanView ? '🌳 Tree' : '🌀 Fan' }}</button>
+    </div>
 
     <!-- Footer -->
     <div class="footer">
@@ -121,6 +143,7 @@ import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import FamilyTreeCanvas from '../components/FamilyTreeCanvas.vue';
+import FanChartCanvas from '../components/FanChartCanvas.vue';
 import PersonDrawer from '../components/PersonDrawer.vue';
 import PersonForm from '../components/PersonForm.vue';
 import { statsApi } from '../api';
@@ -135,7 +158,12 @@ const editingPerson = ref<any>(null);
 const preRelation = ref<any>(null);
 const treeKey = ref(0);
 const drawerVersion = ref(0);
-const canvasRef = ref<InstanceType<typeof FamilyTreeCanvas> & { focusOnNode: (id: string) => void; personNodes: any[] }>();
+const fanView = ref(false);
+const canvasRef = ref<{
+  reload: () => void;
+  focusOnNode: (id: string) => void;
+  personNodes: any[];
+} | null>(null);
 const stats = ref({ totalVisits: 0, onlineNow: 0 });
 const remindersDismissed = ref(false);
 
@@ -241,6 +269,7 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 .title-count { font-size: 11px; font-weight: 400; color: #57606a; }
 .btn-full { }
 .btn-short { display: none; }
+.btn-audit .btn-short { display: none; }
 
 .search-wrap { position: relative; flex-shrink: 0; }
 .search-input { height: 30px; padding: 0 10px; border: 1px solid #d0d7de; border-radius: 6px; font-size: 13px; background: #f6f8fa; outline: none; width: 200px; }
@@ -264,6 +293,11 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 .btn-add:hover { background: #2c974b; }
 .btn-logout { background: #cf222e; color: #fff; border: 1px solid #a40e26; border-radius: 6px; padding: 7px 14px; cursor: pointer; font-size: 13px; white-space: nowrap; font-weight: 500; }
 .btn-logout:hover { background: #a40e26; }
+.btn-audit { background: #f6f8fa; color: #24292f; border: 1px solid #d0d7de; border-radius: 6px; padding: 7px 14px; font-size: 13px; white-space: nowrap; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; }
+.btn-audit:hover { background: #eaeef2; border-color: #0969da; color: #0969da; }
+.btn-admin-media { display: flex; align-items: center; gap: 6px; padding: 7px 13px; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; color: #24292f; text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn-admin-media:hover { background: #eaeef2; border-color: #8c959f; }
+.btn-admin-media .btn-short { display: none; }
 
 /* Reminder banner */
 .reminder-banner { background: linear-gradient(135deg, #fff8c5, #fffbe6); border-bottom: 1px solid #d4a72c; padding: 7px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
@@ -285,6 +319,35 @@ function handleLogout() { auth.logout(); router.push('/login'); }
 .footer { background: #ffffff; border-top: 1px solid #d0d7de; height: 34px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #57606a; flex-shrink: 0; }
 .footer strong { color: #24292f; }
 
+.canvas-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.view-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(140,149,159,0.15);
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.view-toggle:hover {
+  background: #f0f7ff;
+  border-color: #0969da;
+  color: #0969da;
+}
+
 /* Mobile */
 @media (max-width: 640px) {
   .toolbar { padding: 0 10px; gap: 6px; }
@@ -301,6 +364,10 @@ function handleLogout() { auth.logout(); router.push('/login'); }
   .btn-logout { padding: 6px 8px; font-size: 13px; }
   .btn-logout .btn-full { display: none; }
   .btn-logout .btn-short { display: inline; }
+  .btn-audit .btn-full { display: none; }
+  .btn-audit .btn-short { display: inline; }
+  .btn-admin-media .btn-full { display: none; }
+  .btn-admin-media .btn-short { display: inline; }
   .hero { padding: 10px 14px; }
   .hero-content h2 { font-size: 0.9rem; }
   .hero-content p { font-size: 11px; }
