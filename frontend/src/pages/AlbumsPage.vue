@@ -40,9 +40,14 @@ const loading = ref(true);
 const showCreate = ref(false);
 
 onMounted(async () => {
-  const res = await albumsApi.list();
-  albums.value = res.data.data;
-  loading.value = false;
+  try {
+    const res = await albumsApi.list();
+    albums.value = res.data.data;
+  } catch {
+    // keep albums empty on error
+  } finally {
+    loading.value = false;
+  }
 });
 
 function thumbUrl(url: string) {

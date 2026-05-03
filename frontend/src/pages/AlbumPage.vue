@@ -16,7 +16,7 @@
         </div>
         <p v-if="album.description && !editing" class="description">{{ album.description }}</p>
         <textarea v-if="editing" v-model="editDescription" class="edit-desc-input" rows="2" />
-        <router-link v-if="album.person" to="/" class="person-link">👤 {{ album.person.fullName }}</router-link>
+        <router-link v-if="album.person" :to="`/persons/${album.person.id}`" class="person-link">👤 {{ album.person.fullName }}</router-link>
 
         <div class="actions">
           <button v-if="auth.token" class="btn-add" @click="showAddMedia = true">+ Thêm media</button>
@@ -32,6 +32,7 @@
             <button class="btn-cancel" @click="editing = false">Hủy</button>
           </template>
         </div>
+        <div v-if="actionError" class="action-error">{{ actionError }}</div>
       </div>
 
       <div v-if="album.items.length === 0" class="empty">Chưa có media nào trong album này.</div>
@@ -88,6 +89,7 @@ const showAddMedia = ref(false);
 const editing = ref(false);
 const editTitle = ref('');
 const editDescription = ref('');
+const actionError = ref('');
 
 const canEdit = computed(() =>
   isAdmin.value || isEditor.value || album.value?.createdBy === auth.userPhone
@@ -130,20 +132,32 @@ function startEdit() {
 }
 
 async function saveEdit() {
-  await albumsApi.update(albumId, { title: editTitle.value, description: editDescription.value });
-  album.value.title = editTitle.value;
-  album.value.description = editDescription.value;
-  editing.value = false;
+  try {
+    await albumsApi.update(albumId, { title: editTitle.value, description: editDescription.value });
+    album.value.title = editTitle.value;
+    album.value.description = editDescription.value;
+    editing.value = false;
+  } catch {
+    actionError.value = 'Không thể lưu thay đổi. Vui lòng thử lại.';
+  }
 }
 
 async function moderate(status: 'APPROVED' | 'REJECTED') {
-  await albumsApi.updateStatus(albumId, status);
-  album.value.status = status;
+  try {
+    await albumsApi.updateStatus(albumId, status);
+    album.value.status = status;
+  } catch {
+    actionError.value = 'Không thể cập nhật trạng thái.';
+  }
 }
 
 async function removeMedia(mediaId: string) {
-  await albumsApi.removeMedia(albumId, mediaId);
-  album.value.items = album.value.items.filter((i: any) => i.mediaId !== mediaId);
+  try {
+    await albumsApi.removeMedia(albumId, mediaId);
+    album.value.items = album.value.items.filter((i: any) => i.mediaId !== mediaId);
+  } catch {
+    actionError.value = 'Không thể xóa media.';
+  }
 }
 
 async function onMediaAdded() {
@@ -193,4 +207,5 @@ h1 { font-size: 1.4rem; color: #24292f; margin: 0; }
 .media-badge.rejected { background: #ffebe9; color: #cf222e; }
 .btn-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.55); color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; }
 .btn-remove:hover { background: #cf222e; }
+.action-error { color: #cf222e; font-size: 13px; margin-top: 8px; }
 </style>
