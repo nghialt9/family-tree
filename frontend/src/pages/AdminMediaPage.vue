@@ -5,74 +5,117 @@
       <h1>📋 Duyệt Media <span v-if="total > 0">({{ total }})</span></h1>
     </div>
 
-    <div class="filters">
-      <select v-model="statusFilter" @change="fetchMedia(1)">
-        <option value="PENDING">Chờ duyệt</option>
-        <option value="APPROVED">Đã duyệt</option>
-        <option value="REJECTED">Đã từ chối</option>
-        <option value="ALL">Tất cả</option>
-      </select>
+    <div class="tabs">
+      <button :class="['tab', { active: activeTab === 'media' }]" @click="activeTab = 'media'">Media</button>
+      <button :class="['tab', { active: activeTab === 'albums' }]" @click="activeTab = 'albums'">
+        Albums
+        <span v-if="pendingAlbums.filter(a => a.status === 'PENDING').length" class="badge">{{ pendingAlbums.filter(a => a.status === 'PENDING').length }}</span>
+      </button>
     </div>
 
-    <div v-if="loading" class="loading">Đang tải...</div>
-    <div v-else-if="items.length === 0" class="empty">Không có media nào.</div>
+    <div v-if="activeTab === 'media'">
+      <div class="filters">
+        <select v-model="statusFilter" @change="fetchMedia(1)">
+          <option value="PENDING">Chờ duyệt</option>
+          <option value="APPROVED">Đã duyệt</option>
+          <option value="REJECTED">Đã từ chối</option>
+          <option value="ALL">Tất cả</option>
+        </select>
+      </div>
 
-    <table v-else class="media-table">
-      <thead>
-        <tr>
-          <th>Preview</th>
-          <th>Người</th>
-          <th>Loại</th>
-          <th>Trạng thái</th>
-          <th>Ngày tải</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in items" :key="item.id">
-          <td class="thumb-cell">
-            <img v-if="item.resourceType !== 'RAW'" :src="thumbUrl(item)" class="thumb" @click="openViewer(item)" />
-            <span v-else class="pdf-icon" @click="openViewer(item)">📄</span>
-          </td>
-          <td>
-            <router-link
-              v-if="item.personId"
-              :to="`/persons/${item.personId}/media`"
-              class="person-link"
-            >
-              {{ item.person?.fullName ?? '—' }}
-            </router-link>
-            <router-link
-              v-else-if="item.relationshipId"
-              :to="`/relationships/${item.relationshipId}/media`"
-              class="person-link"
-            >
-              {{ item.relationship?.personA?.fullName ?? '' }} ↔ {{ item.relationship?.personB?.fullName ?? '' }}
-            </router-link>
-            <span v-else>—</span>
-          </td>
-          <td>
-            <span class="type-badge">{{ item.resourceType }}</span>
-          </td>
-          <td>
-            <span class="status-badge" :class="item.status.toLowerCase()">{{ statusLabel(item.status) }}</span>
-          </td>
-          <td class="date-cell">{{ formatDate(item.createdAt) }}</td>
-          <td>
-            <div v-if="item.status === 'PENDING'" class="actions">
-              <button class="btn-approve" @click="moderate(item.id, 'APPROVED')">✓ Duyệt</button>
-              <button class="btn-reject" @click="moderate(item.id, 'REJECTED')">✗ Từ chối</button>
-            </div>
-            <span v-else class="no-action">—</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <div v-if="loading" class="loading">Đang tải...</div>
+      <div v-else-if="items.length === 0" class="empty">Không có media nào.</div>
 
-    <div v-show="totalPages > 1" class="pagination">
-      <button :disabled="page === 1" @click="fetchMedia(page - 1)">←</button>
-      <span>Trang {{ page }}/{{ totalPages }}</span>
-      <button :disabled="page === totalPages" @click="fetchMedia(page + 1)">→</button>
+      <table v-else class="media-table">
+        <thead>
+          <tr>
+            <th>Preview</th>
+            <th>Người</th>
+            <th>Loại</th>
+            <th>Trạng thái</th>
+            <th>Ngày tải</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td class="thumb-cell">
+              <img v-if="item.resourceType !== 'RAW'" :src="thumbUrl(item)" class="thumb" @click="openViewer(item)" />
+              <span v-else class="pdf-icon" @click="openViewer(item)">📄</span>
+            </td>
+            <td>
+              <router-link
+                v-if="item.personId"
+                :to="`/persons/${item.personId}/media`"
+                class="person-link"
+              >
+                {{ item.person?.fullName ?? '—' }}
+              </router-link>
+              <router-link
+                v-else-if="item.relationshipId"
+                :to="`/relationships/${item.relationshipId}/media`"
+                class="person-link"
+              >
+                {{ item.relationship?.personA?.fullName ?? '' }} ↔ {{ item.relationship?.personB?.fullName ?? '' }}
+              </router-link>
+              <span v-else>—</span>
+            </td>
+            <td>
+              <span class="type-badge">{{ item.resourceType }}</span>
+            </td>
+            <td>
+              <span class="status-badge" :class="item.status.toLowerCase()">{{ statusLabel(item.status) }}</span>
+            </td>
+            <td class="date-cell">{{ formatDate(item.createdAt) }}</td>
+            <td>
+              <div v-if="item.status === 'PENDING'" class="actions">
+                <button class="btn-approve" @click="moderate(item.id, 'APPROVED')">✓ Duyệt</button>
+                <button class="btn-reject" @click="moderate(item.id, 'REJECTED')">✗ Từ chối</button>
+              </div>
+              <span v-else class="no-action">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div v-show="totalPages > 1" class="pagination">
+        <button :disabled="page === 1" @click="fetchMedia(page - 1)">←</button>
+        <span>Trang {{ page }}/{{ totalPages }}</span>
+        <button :disabled="page === totalPages" @click="fetchMedia(page + 1)">→</button>
+      </div>
+    </div>
+
+    <div v-if="activeTab === 'albums'">
+      <div v-if="albumsLoading" class="loading">Đang tải...</div>
+      <div v-else-if="pendingAlbums.length === 0" class="empty">Không có album nào chờ duyệt.</div>
+      <table v-else class="media-table">
+        <thead>
+          <tr>
+            <th>Tên album</th>
+            <th>Người tạo</th>
+            <th>Gắn với</th>
+            <th>Trạng thái</th>
+            <th>Ngày tạo</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="a in pendingAlbums" :key="a.id">
+            <td><router-link :to="`/albums/${a.id}`" class="person-link">{{ a.title }}</router-link></td>
+            <td>{{ a.createdBy }}</td>
+            <td>{{ a.person?.fullName ?? '—' }}</td>
+            <td><span class="status-badge" :class="a.status.toLowerCase()">{{ a.status === 'PENDING' ? 'Chờ duyệt' : a.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối' }}</span></td>
+            <td class="date-cell">{{ formatDate(a.createdAt) }}</td>
+            <td>
+              <div v-if="a.status === 'PENDING'" class="actions">
+                <button class="btn-approve" @click="moderateAlbum(a.id, 'APPROVED')">✓ Duyệt</button>
+                <button class="btn-reject" @click="moderateAlbum(a.id, 'REJECTED')">✗ Từ chối</button>
+              </div>
+              <span v-else class="no-action">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <MediaViewer v-if="viewerMedia" :media="viewerMedia" @close="viewerMedia = null" />
@@ -81,7 +124,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { mediaApi } from '../api';
+import { mediaApi, albumsApi } from '../api';
 import MediaViewer from '../components/MediaViewer.vue';
 
 const statusFilter = ref('PENDING');
@@ -92,9 +135,13 @@ const loading = ref(true);
 const viewerMedia = ref<any>(null);
 const LIMIT = 20;
 
+const activeTab = ref<'media' | 'albums'>('media');
+const pendingAlbums = ref<any[]>([]);
+const albumsLoading = ref(false);
+
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / LIMIT)));
 
-onMounted(() => fetchMedia(1));
+onMounted(() => { fetchMedia(1); fetchAlbums(); });
 
 async function fetchMedia(p: number) {
   loading.value = true;
@@ -103,6 +150,19 @@ async function fetchMedia(p: number) {
   items.value = res.data.data;
   total.value = res.data.total;
   loading.value = false;
+}
+
+async function fetchAlbums() {
+  albumsLoading.value = true;
+  const res = await albumsApi.list({ status: 'PENDING' });
+  pendingAlbums.value = res.data.data;
+  albumsLoading.value = false;
+}
+
+async function moderateAlbum(albumId: string, status: 'APPROVED' | 'REJECTED') {
+  await albumsApi.updateStatus(albumId, status);
+  const album = pendingAlbums.value.find((a: any) => a.id === albumId);
+  if (album) album.status = status;
 }
 
 function thumbUrl(item: any): string {
@@ -166,4 +226,8 @@ h1 { flex: 1; font-size: 1.3rem; color: #24292f; margin: 0; }
 .pagination button { padding: 6px 14px; border: 1px solid #d0d7de; border-radius: 6px; background: #f6f8fa; cursor: pointer; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 .pagination button:hover:not(:disabled) { background: #eaeef2; }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid #d0d7de; margin-bottom: 16px; }
+.tab { padding: 8px 20px; background: none; border: none; border-bottom: 2px solid transparent; font-size: 13px; cursor: pointer; color: #57606a; position: relative; }
+.tab.active { color: #0969da; border-bottom-color: #0969da; font-weight: 600; }
+.badge { background: #cf222e; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; margin-left: 4px; }
 </style>
