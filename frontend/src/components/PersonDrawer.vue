@@ -141,6 +141,7 @@ const showCreateAlbum = ref(false);
 watch(
   [() => props.personId, () => props.version],
   async ([id]) => {
+    personAlbums.value = [];
     if (!id) { person.value = null; relatives.value = null; return; }
     loading.value = true;
     try {
