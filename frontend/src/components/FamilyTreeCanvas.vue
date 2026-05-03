@@ -31,11 +31,13 @@ import PersonNode from './PersonNode.vue';
 import SpouseConnector from './SpouseConnector.vue';
 import FamilyGroupNode from './FamilyGroupNode.vue';
 import { treeApi } from '../api';
+import { useRouter } from 'vue-router';
 
 const props = defineProps<{ focusPersonId?: string | null }>();
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
 const { fitView, setCenter, viewport } = useVueFlow('family-tree');
+const router = useRouter();
 
 const rawNodes = ref<any[]>([]);
 const rawEdges = ref<any[]>([]);
@@ -245,8 +247,12 @@ onMounted(loadTree);
 defineExpose({ reload: loadTree, focusOnNode, personNodes: readonly(personNodes) });
 
 function onNodeClick(event: NodeMouseEvent) {
+  if (event.node.type === 'spouseConnector') {
+    const relId = event.node.id.replace('connector-', '');
+    router.push(`/relationships/${relId}/media`);
+    return;
+  }
   if (event.node.type === 'person') emit('selectPerson', event.node.id);
-  // familyGroup and spouseConnector clicks are intentionally ignored
 }
 </script>
 

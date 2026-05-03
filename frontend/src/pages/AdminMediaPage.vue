@@ -35,9 +35,21 @@
             <span v-else class="pdf-icon" @click="openViewer(item)">📄</span>
           </td>
           <td>
-            <router-link :to="`/persons/${item.personId}/media`" class="person-link">
+            <router-link
+              v-if="item.personId"
+              :to="`/persons/${item.personId}/media`"
+              class="person-link"
+            >
               {{ item.person?.fullName ?? '—' }}
             </router-link>
+            <router-link
+              v-else-if="item.relationshipId"
+              :to="`/relationships/${item.relationshipId}/media`"
+              class="person-link"
+            >
+              {{ item.relationship?.personA?.fullName ?? '' }} ↔ {{ item.relationship?.personB?.fullName ?? '' }}
+            </router-link>
+            <span v-else>—</span>
           </td>
           <td>
             <span class="type-badge">{{ item.resourceType }}</span>
