@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
@@ -266,11 +266,7 @@ function sendLeave() {
 }
 
 function openAddForm() { preRelation.value = null; editingPerson.value = null; showForm.value = true; }
-function openEditForm(person: any) {
-  console.log('[DEBUG] openEditForm called, person:', person?.fullName, 'id:', person?.id);
-  selectedPersonId.value = null; preRelation.value = null; editingPerson.value = person; showForm.value = true;
-  console.log('[DEBUG] showForm.value is now:', showForm.value);
-}
+function openEditForm(person: any) { selectedPersonId.value = null; preRelation.value = null; editingPerson.value = person; showForm.value = true; }
 function closeForm() { showForm.value = false; editingPerson.value = null; preRelation.value = null; }
 function handleAddRelative(data: any) { preRelation.value = data; editingPerson.value = null; selectedPersonId.value = null; showForm.value = true; }
 async function onSaved() {
@@ -281,10 +277,6 @@ async function onSaved() {
 }
 function refreshTree() { treeKey.value++; }
 function handleLogout() { auth.logout(); router.push('/login'); }
-onErrorCaptured((err, instance, info) => {
-  console.error('[DEBUG] Error captured in TreePage from child:', err, 'info:', info);
-  return false;
-});
 </script>
 
 <style scoped>

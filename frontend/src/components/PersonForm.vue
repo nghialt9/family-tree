@@ -1,7 +1,12 @@
 <template>
   <Teleport to="body">
-  <div class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal">
+  <div
+    class="modal-overlay"
+    style="position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.35);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;"
+    @click.self="$emit('close')"
+  >
+    <div class="modal" style="background:#ffffff;border:1px solid #d0d7de;border-radius:12px;padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 24px rgba(140,149,159,0.2);"
+    >
       <div class="modal-header">
         <h2>{{ editPerson ? 'Sửa thông tin' : preRelationTitle }}</h2>
         <button type="button" class="modal-close" @click="$emit('close')">✕</button>
@@ -322,7 +327,6 @@ const spouseOptions = computed(() => otherPersons.value.map(p => ({
 })));
 
 onMounted(async () => {
-  console.log('[DEBUG] PersonForm mounted, editPerson:', props.editPerson?.fullName);
   const res = await personsApi.list();
   allPersons.value = res.data;
 });
