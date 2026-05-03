@@ -6,7 +6,7 @@ import { logAudit } from '../services/auditService';
 const router = Router();
 
 // GET /:id — fetch single relationship with person names
-router.get('/:id', requireViewer, async (req, res) => {
+router.get('/:id', requireViewer, async (req: AuthRequest, res) => {
   try {
     const rel = await prisma.relationship.findUnique({
       where: { id: req.params.id },
@@ -49,6 +49,9 @@ router.post('/:id/media', requireViewer, async (req: AuthRequest, res) => {
     if (!rel) { res.status(404).json({ error: 'Not found' }); return; }
 
     const { cloudinaryId, url, resourceType, format, bytes, caption } = req.body;
+    if (!cloudinaryId || !url || !resourceType || !format || bytes === undefined) {
+      res.status(400).json({ error: 'Missing required fields' }); return;
+    }
     const media = await prisma.media.create({
       data: {
         relationshipId: req.params.id,
