@@ -125,3 +125,7 @@ export const albumsApi = {
   listByPerson: (personId: string) =>
     api.get(`/persons/${personId}/albums`),
 };
+
+export const geocodeApi = {
+  search: (q: string) => api.get<Array<{ lat: number; lng: number; displayName: string }>>('/geocode', { params: { q } }),
+};
