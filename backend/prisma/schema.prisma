@@ -13,8 +13,11 @@ model Person {
   fullName    String
   nickname    String?
   gender      Gender
-  birthDate   DateTime?
-  deathDate   DateTime?
+  birthDate        DateTime?
+  deathDate        DateTime?
+  deathLunarYear   Int?
+  deathLunarMonth  Int?
+  deathLunarDay    Int?
   phone       String?
   address     String?
   bio         String?

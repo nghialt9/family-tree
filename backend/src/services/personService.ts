@@ -8,6 +8,9 @@ export interface CreatePersonInput {
   gender: Gender;
   birthDate?: string;
   deathDate?: string;
+  deathLunarYear?: number | null;
+  deathLunarMonth?: number | null;
+  deathLunarDay?: number | null;
   phone?: string;
   address?: string;
   hometown?: string;
@@ -32,7 +35,7 @@ export async function createPerson(input: CreatePersonInput & Record<string, unk
     const person = await tx.person.create({
       data: {
         ...personData,
-        isAlive: !personData.deathDate,
+        isAlive: !personData.deathDate && !personData.deathLunarMonth,
         birthDate: personData.birthDate ? new Date(personData.birthDate) : undefined,
         deathDate: personData.deathDate ? new Date(personData.deathDate) : undefined,
       },
@@ -78,7 +81,9 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
       data: {
         ...personData,
         ...coordClear,
-        ...('deathDate' in personData ? { isAlive: !personData.deathDate } : {}),
+        ...('deathDate' in personData || 'deathLunarMonth' in personData
+          ? { isAlive: !personData.deathDate && !personData.deathLunarMonth }
+          : {}),
         ...('birthDate' in personData ? { birthDate: personData.birthDate ? new Date(personData.birthDate as string) : null } : {}),
         ...('deathDate' in personData ? { deathDate: personData.deathDate ? new Date(personData.deathDate as string) : null } : {}),
       },

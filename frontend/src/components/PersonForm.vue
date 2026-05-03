@@ -61,8 +61,8 @@
           <input v-model="form.birthDate" type="date" />
         </div>
         <div class="field">
-          <label>Ngày mất</label>
-          <input v-model="form.deathDate" type="date" />
+          <label>Ngày mất (âm lịch)</label>
+          <input v-model="form.deathLunarDate" type="date" />
         </div>
         <div class="field">
           <label>Số điện thoại</label>
@@ -226,6 +226,7 @@ import SearchableSelect from './SearchableSelect.vue';
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet';
 import L from 'leaflet';
 
+// Pin kéo tuỳ chỉnh — dùng emoji thay cho ảnh marker mặc định của Leaflet
 const dragPinIcon = L.divIcon({
   html: '<span style="font-size:24px;line-height:1;display:block">📍</span>',
   className: '',
@@ -234,8 +235,10 @@ const dragPinIcon = L.divIcon({
 });
 
 const auth = useAuthStore();
+// storeToRefs() giữ reactivity khi destructure từ Pinia store
 const { isAdmin, isEditor, linkedPersonId } = storeToRefs(auth);
 
+// True khi người dùng đang đăng nhập chỉnh sửa card hồ sơ của chính mình
 const isSelfEdit = computed(() => !!props.editPerson && !!linkedPersonId.value && props.editPerson.id === linkedPersonId.value);
 
 function roleLabel(r: string) {
@@ -244,6 +247,7 @@ function roleLabel(r: string) {
   return 'Viewer — chỉ xem';
 }
 
+// defineProps với TypeScript generic — không cần withDefaults() vì các prop đều optional
 const props = defineProps<{
   editPerson?: any | null;
   preRelation?: { type: 'asChildOf' | 'asSpouseOf' | 'asParentOf'; personId: string; personName: string; personGender: 'male' | 'female' } | null;
@@ -264,7 +268,8 @@ const isLockedSpouse = computed(() => props.preRelation?.type === 'asSpouseOf');
 
 const defaultForm = () => ({
   fullName: '', nickname: '', gender: 'male' as 'male' | 'female',
-  birthDate: '', deathDate: '', phone: '', address: '', bio: '', email: '',
+  birthDate: '', deathLunarDate: '',
+  phone: '', address: '', bio: '', email: '',
   generation: 1, grantAccess: false, grantRole: 'viewer' as 'viewer' | 'editor' | 'admin',
   grantPassword: '',
   fatherId: '', motherId: '', spouseId: '',
@@ -292,18 +297,21 @@ const avatarPreview = ref('');
 const showCropper = ref(false);
 const cropperSrc = ref('');
 
+// ref() bọc object — Vue theo dõi khi .value bị thay thế hoàn toàn (không theo dõi field con)
 const origRelIds = ref({ fatherRelId: '', motherRelId: '', spouseRelId: '' });
 const origPersonIds = ref({ fatherId: '', motherId: '', spouseId: '' });
 
-// Actual role from the API (set regardless of whether we pre-fill the form)
+// Role hiện tại của người này trong hệ thống (null = chưa có quyền truy cập)
 const existingAccessRole = ref<string | null>(null);
 
-// Editor cannot touch access for persons who already have admin/editor roles
+// Editor không được thay đổi quyền của người đã có role admin hoặc editor.
+// Điều này ngăn leo thang đặc quyền (editor tự cấp/thu hồi quyền admin/editor).
 const canEditAccess = computed(() => {
   if (isSelfEdit.value || isAdmin.value) return true;
   return !existingAccessRole.value || existingAccessRole.value === 'viewer';
 });
 
+// Loại người đang chỉnh sửa khỏi dropdown quan hệ để tránh tự tham chiếu chính mình
 const malePersons = computed(() =>
   allPersons.value.filter(p => p.id !== props.editPerson?.id && p.gender === 'male')
 );
@@ -325,11 +333,19 @@ const spouseOptions = computed(() => otherPersons.value.map(p => ({
 })));
 
 onMounted(async () => {
+  // Tải trước tất cả người một lần để dropdown quan hệ sẵn sàng ngay khi form mở
   const res = await personsApi.list();
   allPersons.value = res.data;
 });
 
+// watch(() => props.editPerson, ...) — dùng getter function thay vì props.editPerson trực tiếp
+// vì props là reactive object, cần getter để Vue theo dõi đúng field
+// { immediate: true } — chạy ngay khi component mount, không chờ editPerson thay đổi
+// Điền lại form mỗi khi người được chỉnh sửa thay đổi (hoặc khi form mở lần đầu).
+// Dùng allSettled để tải quan hệ và quyền truy cập song song — một lỗi 403
+// (editor xem quyền của admin) không làm hỏng phần còn lại của form.
 watch(() => props.editPerson, async (p) => {
+  // Reset trạng thái tạm trước để dữ liệu cũ không lọt vào lần mở form mới
   avatarFile.value = null;
   avatarPreview.value = '';
   origRelIds.value = { fatherRelId: '', motherRelId: '', spouseRelId: '' };
@@ -344,7 +360,10 @@ watch(() => props.editPerson, async (p) => {
       ...defaultForm(),
       fullName: p.fullName, nickname: p.nickname || '', gender: p.gender,
       birthDate: p.birthDate ? p.birthDate.slice(0, 10) : '',
-      deathDate: p.deathDate ? p.deathDate.slice(0, 10) : '',
+      // Ghép 3 field riêng thành "YYYY-MM-DD" để date picker hiển thị đúng
+      deathLunarDate: (p.deathLunarYear && p.deathLunarMonth && p.deathLunarDay)
+        ? `${p.deathLunarYear}-${String(p.deathLunarMonth).padStart(2, '0')}-${String(p.deathLunarDay).padStart(2, '0')}`
+        : '',
       phone: p.phone || '', address: p.address || '', bio: p.bio || '',
       email: p.email || '',
       generation: p.generation,
@@ -354,8 +373,11 @@ watch(() => props.editPerson, async (p) => {
       currentLat: p.currentLat ?? null,
       currentLng: p.currentLng ?? null,
     };
+    // Promise.allSettled() — chạy song song, KHÔNG throw nếu một promise fail
+    // (khác Promise.all() sẽ reject ngay khi có một cái fail)
     const [rResult, aResult] = await Promise.allSettled([
       personsApi.getRelatives(p.id),
+      // Chỉ editor mới cần thông tin quyền truy cập; bỏ qua với phiên viewer
       isEditor.value ? personsApi.getAccess(p.id) : Promise.resolve(null),
     ]);
     if (rResult.status === 'fulfilled' && rResult.value) {
@@ -366,6 +388,7 @@ watch(() => props.editPerson, async (p) => {
       form.value.fatherId = father?.id || '';
       form.value.motherId = mother?.id || '';
       form.value.spouseId = spouse?.id || '';
+      // Lưu ID gốc để handleRelationships có thể so sánh cũ/mới khi submit
       origRelIds.value = {
         fatherRelId: father?.relationshipId || '',
         motherRelId: mother?.relationshipId || '',
@@ -379,14 +402,15 @@ watch(() => props.editPerson, async (p) => {
     }
     if (aResult.status === 'fulfilled' && aResult.value?.data?.hasAccess) {
       const existingRole = aResult.value.data.role;
-      existingAccessRole.value = existingRole; // always capture, used by canEditAccess
-      // Pre-fill form: always for self-edit; admin can see all; editor only sees viewer
+      existingAccessRole.value = existingRole; // luôn lưu để canEditAccess có thể kiểm tra
+      // Điền sẵn phần quyền: self-edit luôn thấy; admin thấy tất cả; editor chỉ thấy viewer
       if (isSelfEdit.value || isAdmin.value || existingRole === 'viewer') {
         form.value.grantAccess = true;
         form.value.grantRole = existingRole;
       }
     }
   } else {
+    // Người mới: reset về mặc định, rồi điền sẵn quan hệ bị khoá từ preRelation
     form.value = defaultForm();
     const rel = props.preRelation;
     if (rel) {
@@ -400,7 +424,10 @@ watch(() => props.editPerson, async (p) => {
   }
 }, { immediate: true });
 
-// Auto-calculate generation from selected parents (new persons only)
+// watch([dep1, dep2], ([val1, val2]) => ...) — watch mảng deps để lắng nghe cả 2 field cùng lúc
+// destructure [fId, mId] từ tham số đầu tiên tương ứng với từng dep
+// Tự động tính thế hệ khi chọn bố/mẹ (chỉ áp dụng cho người mới).
+// Lấy thế hệ cao nhất của bố/mẹ + 1 để nhập liệu nhiều thế hệ vẫn nhất quán.
 watch([() => form.value.fatherId, () => form.value.motherId], ([fId, mId]) => {
   if (props.editPerson) return;
   const father = allPersons.value.find(p => p.id === fId);
@@ -409,16 +436,20 @@ watch([() => form.value.fatherId, () => form.value.motherId], ([fId, mId]) => {
   form.value.generation = maxGen > 0 ? maxGen + 1 : 1;
 });
 
+// Mở cropper ngay sau khi người dùng chọn file ảnh
 function handleFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
+  // Thu hồi object URL cũ để tránh rò rỉ bộ nhớ
   if (cropperSrc.value) URL.revokeObjectURL(cropperSrc.value);
+  // URL.createObjectURL() — tạo URL tạm (blob:...) trong memory trỏ đến file, cần revoke sau khi dùng
   cropperSrc.value = URL.createObjectURL(file);
   showCropper.value = true;
 }
 
 function onCropConfirm(blob: Blob) {
   avatarFile.value = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+  // Thu hồi URL xem trước cũ trước khi tạo URL mới
   if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
   avatarPreview.value = URL.createObjectURL(blob);
   showCropper.value = false;
@@ -428,6 +459,7 @@ function onCropConfirm(blob: Blob) {
 function onCropCancel() {
   showCropper.value = false;
   if (cropperSrc.value) { URL.revokeObjectURL(cropperSrc.value); cropperSrc.value = ''; }
+  // Reset file input để người dùng có thể chọn lại cùng file nếu muốn
   if (fileInput.value) fileInput.value.value = '';
 }
 
@@ -437,6 +469,8 @@ function clearAvatar() {
   if (fileInput.value) fileInput.value.value = '';
 }
 
+// Đồng bộ quan hệ theo kiểu diff: chỉ xử lý những quan hệ thực sự thay đổi.
+// Xóa quan hệ cũ trước, rồi tạo mới (backend không có endpoint update trực tiếp).
 async function handleRelationships(personId: string) {
   if (form.value.fatherId !== origPersonIds.value.fatherId) {
     if (origRelIds.value.fatherRelId) await relationshipsApi.delete(origRelIds.value.fatherRelId);
@@ -500,6 +534,7 @@ async function geocodeCurrent() {
   }
 }
 
+// Cập nhật toạ độ khi người dùng kéo pin; xoá displayName vì vị trí đã thay đổi, không còn khớp
 function onHometownMarkerMove(event: any) {
   const { lat, lng } = event.target.getLatLng();
   form.value.homeLat = lat;
@@ -517,13 +552,15 @@ function onCurrentMarkerMove(event: any) {
 async function handleSubmit() {
   loading.value = true; error.value = '';
   try {
-    // Compute access grant fields based on who is being edited
+    // Xây dựng fields cấp quyền theo 3 quy tắc phân quyền khác nhau:
+    //   self-edit  → role không được đổi, chỉ có thể thay đổi mật khẩu
+    //   admin      → có thể đặt bất kỳ role và mật khẩu nào
+    //   editor     → chỉ cấp được quyền viewer, không có trường mật khẩu
     let grantAccess: boolean | undefined;
     let grantRole: string | undefined;
     let grantPassword: string | undefined;
 
     if (isSelfEdit.value) {
-      // Self-edit: role is immutable; only update password if provided
       grantAccess = form.value.grantAccess;
       grantRole   = form.value.grantAccess ? form.value.grantRole : undefined;
       grantPassword = (form.value.grantAccess && form.value.grantPassword) ? form.value.grantPassword : undefined;
@@ -533,7 +570,6 @@ async function handleSubmit() {
       grantPassword = (form.value.grantAccess && (form.value.grantRole === 'admin' || form.value.grantRole === 'editor') && form.value.grantPassword)
         ? form.value.grantPassword : undefined;
     } else {
-      // Editor editing others: viewer access only, no password
       grantAccess   = form.value.grantAccess || undefined;
       grantRole     = form.value.grantAccess ? 'viewer' : undefined;
       grantPassword = undefined;
@@ -542,7 +578,13 @@ async function handleSubmit() {
     const payload = {
       ...form.value,
       birthDate: form.value.birthDate || undefined,
-      deathDate: form.value.deathDate || undefined,
+      // Parse "YYYY-MM-DD" → 3 field số riêng để backend lưu
+      ...(() => {
+        const d = form.value.deathLunarDate;
+        if (!d) return { deathLunarYear: null, deathLunarMonth: null, deathLunarDay: null };
+        const [y, m, dd] = d.split('-').map(Number);
+        return { deathLunarYear: y || null, deathLunarMonth: m || null, deathLunarDay: dd || null };
+      })(),
       phone: form.value.phone || undefined,
       email: form.value.email || undefined,
       nickname: form.value.nickname || undefined,
@@ -569,6 +611,8 @@ async function handleSubmit() {
       await personsApi.uploadAvatar(savedId, avatarFile.value);
     }
     await handleRelationships(savedId);
+    // 'asParentOf' xử lý riêng: người mới là bố/mẹ nên chiều edge bị đảo ngược
+    // (newPerson → existingPerson) và không được handleRelationships bao phủ
     if (!props.editPerson && props.preRelation?.type === 'asParentOf') {
       await relationshipsApi.create({ personAId: savedId, personBId: props.preRelation.personId, type: 'parent_child' });
     }

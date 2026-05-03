@@ -77,13 +77,17 @@ import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet';
 import L from 'leaflet';
 import { personsApi } from '../api';
 
+// defineEmits với TypeScript generic — khai báo kiểu event emit type-safe, không cần runtime validator
 const emit = defineEmits<{ (e: 'selectPerson', id: string): void }>();
 
+// ref() bọc array/primitive — Vue theo dõi khi .value thay thế toàn bộ
 const persons = ref<any[]>([]);
 const loading = ref(true);
 const loadError = ref(false);
+// ref() với union type — chỉ cho phép 3 giá trị hợp lệ, TypeScript bắt lỗi tại compile time
 const filterMode = ref<'all' | 'hometown' | 'current'>('all');
 
+// Icon pin quê quán — màu cam để phân biệt với pin địa chỉ hiện tại
 const hometownIcon = L.divIcon({
   html: '<span style="font-size:22px;line-height:1;display:block">🟠</span>',
   className: '',
@@ -91,6 +95,7 @@ const hometownIcon = L.divIcon({
   iconAnchor: [13, 13],
 });
 
+// Icon pin địa chỉ hiện tại — màu xanh để phân biệt với pin quê quán
 const currentIcon = L.divIcon({
   html: '<span style="font-size:22px;line-height:1;display:block">🔵</span>',
   className: '',
@@ -98,22 +103,30 @@ const currentIcon = L.divIcon({
   iconAnchor: [13, 13],
 });
 
+// computed() — tự cache, chỉ tính lại khi persons thay đổi; lọc người có toạ độ quê quán hợp lệ
 const hometownPins = computed(() =>
   persons.value.filter(p => p.homeLat != null && p.homeLng != null)
 );
 
+// computed() — tương tự, lọc người có toạ độ địa chỉ hiện tại hợp lệ
 const currentPins = computed(() =>
   persons.value.filter(p => p.currentLat != null && p.currentLng != null)
 );
 
+// computed() — đếm người duy nhất có ít nhất một địa điểm
 const totalWithLocation = computed(() => {
+  // new Set([...arr1, ...arr2]) — spread merge 2 mảng rồi loại trùng lặp tự động;
+  // người có cả quê quán lẫn địa chỉ hiện tại chỉ được đếm một lần
   const ids = new Set([
     ...hometownPins.value.map((p: any) => p.id),
     ...currentPins.value.map((p: any) => p.id),
   ]);
+  // Set.size — số phần tử duy nhất trong Set
   return ids.size;
 });
 
+// onMounted — Vue lifecycle hook, chạy sau khi component được gắn vào DOM
+// async callback được phép — Vue bắt unhandled rejection nếu có
 onMounted(async () => {
   try {
     const res = await personsApi.list();
@@ -121,6 +134,7 @@ onMounted(async () => {
   } catch {
     loadError.value = true;
   } finally {
+    // finally — luôn chạy dù thành công hay lỗi, đảm bảo loading được tắt
     loading.value = false;
   }
 });
