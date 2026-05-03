@@ -5,7 +5,7 @@ export function validateSignParams(params: {
   albumId?: string;
 }): string | null {
   if (!params.resourceType) return 'resourceType is required';
-  const count = [params.personId, params.relationshipId, params.albumId].filter(Boolean).length;
+  const count = [params.personId, params.relationshipId, params.albumId].filter(v => v !== undefined && v !== '').length;
   if (count !== 1) {
     return 'Exactly one of personId, relationshipId, or albumId is required';
   }
