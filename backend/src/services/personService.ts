@@ -10,6 +10,11 @@ export interface CreatePersonInput {
   deathDate?: string;
   phone?: string;
   address?: string;
+  hometown?: string;
+  homeLat?: number | null;
+  homeLng?: number | null;
+  currentLat?: number | null;
+  currentLng?: number | null;
   bio?: string;
   email?: string;
   generation: number;
@@ -73,7 +78,7 @@ export async function updatePerson(id: string, input: UpdatePersonInput & Record
       data: {
         ...personData,
         ...coordClear,
-        isAlive: !personData.deathDate,
+        ...('deathDate' in personData ? { isAlive: !personData.deathDate } : {}),
         birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
         deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
       },
