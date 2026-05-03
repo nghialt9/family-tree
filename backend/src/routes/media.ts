@@ -2,20 +2,26 @@ import { Router } from 'express';
 import { requireViewer, requireAdmin, AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
 import { generateSignature, deleteMedia } from '../services/cloudinaryService';
+import { validateSignParams } from './mediaSignValidation';
 
 const router = Router();
 
 // GET /sign — all authenticated users
-// Defined first to avoid being matched as /:id
 router.get('/sign', requireViewer, (req: AuthRequest, res) => {
-  const { resourceType, personId } = req.query as { resourceType: string; personId: string };
-  if (!resourceType || !personId) {
-    res.status(400).json({ error: 'resourceType and personId required' });
-    return;
-  }
+  const { resourceType, personId, relationshipId } = req.query as {
+    resourceType?: string;
+    personId?: string;
+    relationshipId?: string;
+  };
+
+  const err = validateSignParams({ resourceType, personId, relationshipId });
+  if (err) { res.status(400).json({ error: err }); return; }
+
   try {
-    const folder = `family-tree/persons/${personId}`;
-    const result = generateSignature({ folder, resourceType });
+    const folder = personId
+      ? `family-tree/persons/${personId}`
+      : `family-tree/relationships/${relationshipId}`;
+    const result = generateSignature({ folder, resourceType: resourceType! });
     res.json(result);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
@@ -40,7 +46,15 @@ router.get('/', requireAdmin, async (req, res) => {
   const [data, total] = await Promise.all([
     prisma.media.findMany({
       where,
-      include: { person: { select: { fullName: true } } },
+      include: {
+        person: { select: { fullName: true } },
+        relationship: {
+          select: {
+            personA: { select: { fullName: true } },
+            personB: { select: { fullName: true } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
