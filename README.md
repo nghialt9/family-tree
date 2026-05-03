@@ -224,14 +224,18 @@ flyctl secrets set \
   Task 10 (Fly.io secrets + deploy) requires your Resend API key. To complete the deployment, run these three commands
   yourself:
 
-  fly secrets set RESEND_API_KEY=re_ATySox2m_4YtWUtvdfTFEML7wcKezp5oG
+  fly secrets set RESEND_API_KEY=a
   fly secrets set RESEND_FROM=onboarding@resend.dev
   fly secrets set APP_URL=https://justinlam-familytree.fly.dev
   fly deploy
 
   fly secrets set CLOUDINARY_CLOUD_NAME=dcxdq2lyr
   fly secrets set CLOUDINARY_API_KEY=816583792127762
-  fly secrets set CLOUDINARY_API_SECRET=FNgYABB9cKk54jQQjvuT_FGAUFQ
+  fly secrets set CLOUDINARY_API_SECRET=a
+  fly deploy
+
+  fly secrets set GMAIL_USER=lamtrongnghia1990@gmail.com
+  fly secrets set GMAIL_APP_PASSWORD=a
   fly deploy
 
   After deploy, watch fly logs for the line [cron] notification cron started (every 5 min) to confirm it's running.

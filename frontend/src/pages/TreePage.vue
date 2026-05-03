@@ -3,11 +3,6 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-      <span class="app-title">
-        🌳 Gia Phả Họ Lâm
-        <span v-if="totalPersonCount" class="title-count">· {{ totalPersonCount }} người</span>
-      </span>
-
       <div class="search-wrap">
         <input
           v-model="searchQuery"
@@ -63,8 +58,8 @@
     <!-- Hero banner -->
     <div class="hero">
       <div class="hero-content">
-        <h2>Gia Phả Họ Lâm</h2>
-        <p>Lưu giữ và kết nối ký ức của các thế hệ trong gia đình. Bấm vào từng người để xem thông tin chi tiết, bấm <em>Chi tiết ▼</em> để xem đầy đủ tiểu sử và mối quan hệ.</p>
+        <h2> 🌳 Gia Phả Họ Lâm <span v-if="totalPersonCount" class="title-count">· {{ totalPersonCount }} người</span></h2>
+        <p>Lưu giữ và kết nối ký ức của các thế hệ trong gia đình. Bấm vào từng người để xem đầy đủ tiểu sử và mối quan hệ.</p>
       </div>
     </div>
 

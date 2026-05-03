@@ -36,7 +36,21 @@
       "Bash(xargs wc *)",
       "Bash(./node_modules/.bin/vue-tsc --noEmit)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/family_tree_test\" npx prisma migrate deploy)",
+      "Bash(cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5432/family_tree_test npx prisma migrate deploy)",
+      "PowerShell(cd E:\\\\JustinLam\\\\family-tree\\\\backend; $env:DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/family_tree_test\"; npx prisma migrate deploy 2>&1 | Select-Object -Last 5)",
+      "PowerShell(cd E:\\\\JustinLam\\\\family-tree\\\\backend; $env:DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/family_tree_test\"; npx prisma migrate dev --name sync 2>&1 | Select-Object -Last 8)",
+      "PowerShell(cd E:\\\\JustinLam\\\\family-tree\\\\backend; $env:DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/family_tree_test\"; npx prisma db push 2>&1 | Select-Object -Last 5)",
+      "PowerShell(cd E:\\\\JustinLam\\\\family-tree\\\\backend; $env:DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/family_tree_test\"; $env:JWT_SECRET=\"test-secret\"; npx jest --runInBand --forceExit tests/persons.test.ts 2>&1 | Select-Object -Last 30)",
+      "Bash(npx jest *)",
+      "Bash(cd E:\\\\\\\\JustinLam\\\\\\\\family-tree\\\\\\\\backend)",
+      "Bash(npx vue-tsc *)",
+      "Bash(npm uninstall *)",
+      "Bash(git *)",
+      "Bash(npx vite *)",
+      "Bash(npm run *)"
     ]
   }
 }
