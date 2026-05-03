@@ -9,6 +9,7 @@ import { statsRouter } from './routes/stats';
 import { auditRouter } from './routes/audit';
 import { mediaRouter } from './routes/media';
 import { albumsRouter } from './routes/albums';
+import { geocodeRouter } from './routes/geocode';
 
 export const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/stats', statsRouter);
 app.use('/api/audit', auditRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/albums', albumsRouter);
+app.use('/api/geocode', geocodeRouter);
 
 // Serve uploaded files (persistent volume in production, ./uploads locally)
 const uploadDir = path.resolve(process.env.UPLOAD_DIR ?? path.join(__dirname, '../../uploads'));
