@@ -41,3 +41,44 @@ export const statsApi = {
   ping: (newVisit: boolean) => api.post('/stats/ping', { newVisit }),
   get: () => api.get('/stats'),
 };
+
+export const auditApi = {
+  list: (params: {
+    action?: string;
+    entityType?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }) => api.get('/audit', { params }),
+};
+
+export const mediaApi = {
+  sign: (params: { resourceType: string; personId: string }) =>
+    api.get('/media/sign', { params }),
+
+  confirmUpload: (
+    personId: string,
+    data: {
+      cloudinaryId: string;
+      url: string;
+      resourceType: string;
+      format: string;
+      bytes: number;
+      caption?: string;
+    }
+  ) => api.post(`/persons/${personId}/media`, data),
+
+  listByPerson: (personId: string) =>
+    api.get(`/persons/${personId}/media`),
+
+  updateStatus: (mediaId: string, status: 'APPROVED' | 'REJECTED') =>
+    api.patch(`/media/${mediaId}/status`, { status }),
+
+  delete: (mediaId: string) =>
+    api.delete(`/media/${mediaId}`),
+
+  adminQueue: (params?: { status?: string; page?: number; limit?: number }) =>
+    api.get('/media', { params }),
+};
