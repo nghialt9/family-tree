@@ -1,4 +1,5 @@
 <template>
+  <Teleport to="body">
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modal-header">
@@ -209,6 +210,7 @@
       </form>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
