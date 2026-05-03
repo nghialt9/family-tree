@@ -176,6 +176,8 @@ onMounted(async () => {
       availableMedia.value = all.filter(
         m => m.status === 'APPROVED' && !props.existingMediaIds.includes(m.id)
       );
+    } catch {
+      selectError.value = 'Không tải được danh sách media.';
     } finally {
       loadingMedia.value = false;
     }
