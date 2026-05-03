@@ -105,7 +105,7 @@
           @select-person="selectedPersonId = $event"
         />
       </template>
-      <div class="view-toggle-group">
+      <div class="view-toggle-group" :style="mapView ? { top: '52px' } : {}">
         <button
           :class="['toggle-btn', !fanView && !mapView && 'active']"
           @click="fanView = false; mapView = false"
@@ -394,6 +394,5 @@ function handleLogout() { auth.logout(); router.push('/login'); }
   .hero { padding: 10px 14px; }
   .hero-content h2 { font-size: 0.9rem; }
   .hero-content p { font-size: 11px; }
-  .view-toggle-group { top: 45px;}
 }
 </style>
