@@ -199,7 +199,7 @@ const displayEdges = computed(() =>
 
 // --- Load & fit ---
 
-function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
+function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))); }
 
 function focusOnNode(id: string) {
   const target = rawNodes.value.find(n => n.type === 'person' && n.id === id);
@@ -219,7 +219,7 @@ function focusOnPerson() {
   }
   const roots = rawNodes.value
     .filter(n => n.type === 'person' && n.data?.generation === 1)
-    .map(n => ({ id: n.id }));
+    .map(n => n.id);
   fitView({ nodes: roots.length > 0 ? roots : undefined, padding: 0.3, duration: 0 });
 }
 

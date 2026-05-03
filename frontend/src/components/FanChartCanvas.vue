@@ -216,7 +216,7 @@ const fanLayout = computed(() => computeLayout());
 
 const personNodes = computed(() => rawNodes.value.filter(n => n.type === 'person'));
 
-function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(r))); }
+function rAF() { return new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))); }
 
 async function loadTree() {
   initialLoadDone = false;
