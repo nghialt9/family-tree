@@ -51,6 +51,20 @@
             <p>{{ person.bio }}</p>
           </div>
 
+          <div v-if="personAlbums.length || auth.token" class="albums-section">
+            <h3>📚 Albums</h3>
+            <div v-for="a in personAlbums" :key="a.id" class="album-row">
+              <router-link :to="`/albums/${a.id}`" class="album-link">{{ a.title }}</router-link>
+            </div>
+            <button v-if="auth.token" class="btn-new-album" @click="showCreateAlbum = true">+ Tạo album</button>
+          </div>
+          <AlbumCreateModal
+            v-if="showCreateAlbum"
+            :preset-person-id="person?.id"
+            @close="showCreateAlbum = false"
+            @created="onAlbumCreated"
+          />
+
           <div v-if="relatives" class="relatives-section">
             <div v-if="relatives.spouses?.length">
               <h3>💍 Vợ / Chồng</h3>
@@ -103,7 +117,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { personsApi } from '../api';
+import { personsApi, albumsApi } from '../api';
+import AlbumCreateModal from './AlbumCreateModal.vue';
 import { useAuthStore } from '../stores/auth';
 
 const props = defineProps<{ personId: string | null; version?: number }>();
@@ -120,6 +135,8 @@ const { isAdmin, isEditor } = storeToRefs(auth);
 const person = ref<any>(null);
 const relatives = ref<any>(null);
 const loading = ref(false);
+const personAlbums = ref<any[]>([]);
+const showCreateAlbum = ref(false);
 
 watch(
   [() => props.personId, () => props.version],
@@ -127,9 +144,14 @@ watch(
     if (!id) { person.value = null; relatives.value = null; return; }
     loading.value = true;
     try {
-      const [pRes, rRes] = await Promise.all([personsApi.get(id as string), personsApi.getRelatives(id as string)]);
+      const [pRes, rRes, aRes] = await Promise.all([
+        personsApi.get(id as string),
+        personsApi.getRelatives(id as string),
+        albumsApi.listByPerson(id as string),
+      ]);
       person.value = pRes.data;
       relatives.value = rRes.data;
+      personAlbums.value = aRes.data.data;
     } finally {
       loading.value = false;
     }
@@ -146,6 +168,13 @@ async function handleDelete() {
   await personsApi.delete(person.value.id);
   emit('deleted');
   emit('close');
+}
+
+async function onAlbumCreated() {
+  showCreateAlbum.value = false;
+  if (!person.value) return;
+  const res = await albumsApi.listByPerson(person.value.id);
+  personAlbums.value = res.data.data;
 }
 
 function formatDate(d: string) { return new Date(d).toLocaleDateString('vi-VN'); }
@@ -194,4 +223,10 @@ h2 { font-size: 1.2rem; color: #24292f; font-weight: 700; }
 .media-link-row { margin-top: 12px; }
 .btn-media { display: inline-block; padding: 8px 16px; background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; border-radius: 6px; font-size: 13px; text-decoration: none; font-weight: 500; }
 .btn-media:hover { background: #ddf4ff; border-color: #54aeff; }
+.albums-section { margin: 16px 0 8px; }
+.album-row { margin-bottom: 4px; }
+.album-link { color: #0969da; text-decoration: none; font-size: 13px; }
+.album-link:hover { text-decoration: underline; }
+.btn-new-album { margin-top: 6px; background: #f6f8fa; border: 1px solid #d0d7de; color: #0969da; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.btn-new-album:hover { background: #ddf4ff; border-color: #54aeff; }
 </style>
