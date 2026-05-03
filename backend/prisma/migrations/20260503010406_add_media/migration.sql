@@ -1,0 +1,34 @@
+-- CreateEnum
+CREATE TYPE "MediaResourceType" AS ENUM ('IMAGE', 'VIDEO', 'RAW');
+
+-- CreateEnum
+CREATE TYPE "MediaStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+
+-- CreateTable
+CREATE TABLE "media" (
+    "id" TEXT NOT NULL,
+    "personId" TEXT NOT NULL,
+    "cloudinaryId" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "resourceType" "MediaResourceType" NOT NULL,
+    "format" TEXT NOT NULL,
+    "bytes" INTEGER NOT NULL,
+    "caption" TEXT,
+    "status" "MediaStatus" NOT NULL,
+    "uploadedBy" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "media_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "media_cloudinaryId_key" ON "media"("cloudinaryId");
+
+-- CreateIndex
+CREATE INDEX "media_personId_idx" ON "media"("personId");
+
+-- CreateIndex
+CREATE INDEX "media_status_idx" ON "media"("status");
+
+-- AddForeignKey
+ALTER TABLE "media" ADD CONSTRAINT "media_personId_fkey" FOREIGN KEY ("personId") REFERENCES "persons"("id") ON DELETE CASCADE ON UPDATE CASCADE;

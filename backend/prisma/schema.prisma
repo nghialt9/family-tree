@@ -28,6 +28,7 @@ model Person {
   relationshipsAsA Relationship[] @relation("PersonA")
   relationshipsAsB Relationship[] @relation("PersonB")
   accessToken      AccessToken?
+  media            Media[]
 
   @@map("persons")
 }
@@ -89,4 +90,64 @@ model NotificationRun {
   sentAt  DateTime?
 
   @@map("notification_runs")
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  actorPhone  String
+  action      AuditAction
+  entityType  AuditEntity
+  entityId    String
+  entityLabel String
+  beforeJson  Json?
+  afterJson   Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityLabel])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum AuditEntity {
+  PERSON
+  RELATIONSHIP
+}
+
+model Media {
+  id             String            @id @default(uuid())
+  personId       String
+  person         Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  cloudinaryId   String            @unique
+  url            String
+  resourceType   MediaResourceType
+  format         String
+  bytes          Int
+  caption        String?
+  status         MediaStatus
+  uploadedBy     String
+  createdAt      DateTime          @default(now())
+
+  @@index([personId])
+  @@index([status])
+  @@map("media")
+}
+
+enum MediaResourceType {
+  IMAGE
+  VIDEO
+  RAW
+}
+
+enum MediaStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
