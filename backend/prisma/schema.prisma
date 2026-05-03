@@ -40,6 +40,7 @@ model Relationship {
   type         RelationshipType
   marriedDate  DateTime?
   divorcedDate DateTime?
+  media        Media[]
 
   personA Person @relation("PersonA", fields: [personAId], references: [id], onDelete: Cascade)
   personB Person @relation("PersonB", fields: [personBId], references: [id], onDelete: Cascade)
@@ -123,19 +124,22 @@ enum AuditEntity {
 
 model Media {
   id             String            @id @default(uuid())
-  personId       String
-  person         Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId       String?
+  person         Person?           @relation(fields: [personId], references: [id], onDelete: Cascade)
+  relationshipId String?
+  relationship   Relationship?     @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
   cloudinaryId   String            @unique
   url            String
   resourceType   MediaResourceType
   format         String
   bytes          Int
   caption        String?
-  status         MediaStatus
+  status         MediaStatus       @default(PENDING)
   uploadedBy     String
   createdAt      DateTime          @default(now())
 
   @@index([personId])
+  @@index([relationshipId])
   @@index([status])
   @@map("media")
 }
