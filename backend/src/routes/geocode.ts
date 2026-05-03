@@ -18,8 +18,12 @@ router.get('/', requireViewer, async (req, res) => {
       res.status(502).json({ error: 'Geocoding service unavailable' });
       return;
     }
-    const data = await response.json() as Array<{ lat: string; lon: string; display_name: string }>;
-    res.json(data.map(item => ({
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      res.status(502).json({ error: 'Geocoding service unavailable' });
+      return;
+    }
+    res.json((data as Array<{ lat: string; lon: string; display_name: string }>).map(item => ({
       lat: parseFloat(item.lat),
       lng: parseFloat(item.lon),
       displayName: item.display_name,

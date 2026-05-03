@@ -60,4 +60,11 @@ describe('GET /api/geocode', () => {
     expect(res.status).toBe(502);
     expect(res.body.error).toBe('Geocoding service unavailable');
   });
+
+  it('returns 502 when fetch throws', async () => {
+    (global as any).fetch = async () => { throw new Error('Network error'); };
+    const res = await request(app).get('/api/geocode?q=somewhere').set(authV());
+    expect(res.status).toBe(502);
+    expect(res.body.error).toBe('Geocoding service unavailable');
+  });
 });
