@@ -177,6 +177,7 @@ const displayNodes = computed(() =>
         isCollapsed,
         hiddenCount,
         onToggleCollapse: toggleCollapse,
+        isCurrentUser: n.id === props.focusPersonId,
       },
     };
   })

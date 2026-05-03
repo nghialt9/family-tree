@@ -266,10 +266,15 @@ function sendLeave() {
 }
 
 function openAddForm() { preRelation.value = null; editingPerson.value = null; showForm.value = true; }
-function openEditForm(person: any) { preRelation.value = null; editingPerson.value = person; showForm.value = true; }
+function openEditForm(person: any) { selectedPersonId.value = null; preRelation.value = null; editingPerson.value = person; showForm.value = true; }
 function closeForm() { showForm.value = false; editingPerson.value = null; preRelation.value = null; }
 function handleAddRelative(data: any) { preRelation.value = data; editingPerson.value = null; selectedPersonId.value = null; showForm.value = true; }
-async function onSaved() { closeForm(); refreshTree(); drawerVersion.value++; }
+async function onSaved() {
+  const savedId = editingPerson.value?.id ?? null;
+  closeForm();
+  refreshTree();
+  if (savedId) { selectedPersonId.value = savedId; drawerVersion.value++; }
+}
 function refreshTree() { treeKey.value++; }
 function handleLogout() { auth.logout(); router.push('/login'); }
 </script>

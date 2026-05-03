@@ -1,5 +1,5 @@
 <template>
-  <div class="person-node" :class="{ deceased: data.isAlive === false, collapsed: data.isCollapsed }">
+  <div class="person-node" :class="{ deceased: data.isAlive === false, collapsed: data.isCollapsed, 'current-user': data.isCurrentUser }">
     <Handle type="target" :position="Position.Top" />
     <Handle type="source" :position="Position.Bottom" />
 
@@ -20,10 +20,13 @@
         >{{ initials }}</div>
       </div>
       <div class="info">
-        <div
-          class="gen-badge"
-          :style="{ background: genColor.badgeBg, color: genColor.accent }"
-        >Thế hệ {{ data.generation }}</div>
+        <div class="badge-row">
+          <div
+            class="gen-badge"
+            :style="{ background: genColor.badgeBg, color: genColor.accent }"
+          >Thế hệ {{ data.generation }}</div>
+          <div v-if="data.isCurrentUser" class="you-badge">👤 Tôi</div>
+        </div>
         <div class="name">{{ data.fullName }}</div>
         <div class="nickname-row">
           <span v-if="data.nickname" class="nickname">"{{ data.nickname }}"</span>
@@ -102,6 +105,7 @@ const avatarBg = computed(() => {
 .person-node:hover { border-color: #0969da; box-shadow: 0 4px 12px rgba(9,105,218,0.18); }
 .person-node.deceased { opacity: 0.62; }
 .person-node.collapsed { border-style: dashed; border-color: #57606a; }
+.person-node.current-user { border-color: #0969da; border-width: 2.5px; box-shadow: 0 0 0 3px rgba(9,105,218,0.2), 0 4px 12px rgba(9,105,218,0.18); }
 
 .gen-stripe { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
 
@@ -117,7 +121,9 @@ const avatarBg = computed(() => {
 }
 
 .info { flex: 1; min-width: 0; padding-top: 1px; }
-.gen-badge { border-radius: 10px; padding: 1px 7px; font-size: 10px; display: inline-block; margin-bottom: 2px; font-weight: 600; }
+.badge-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.gen-badge { border-radius: 10px; padding: 1px 7px; font-size: 10px; display: inline-block; font-weight: 600; }
+.you-badge { background: #0969da; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 700; white-space: nowrap; }
 .name { font-weight: 700; font-size: 13px; color: #24292f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nickname-row { display: flex; align-items: center; gap: 4px; min-height: 14px; }
 .nickname { color: #444c56; font-size: 11px; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 1; min-width: 0; }
