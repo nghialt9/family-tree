@@ -460,7 +460,7 @@ function handleLogout() { auth.logout(); router.push('/login'); }
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 10;
+  z-index: 999;
   display: flex;
   border: 1px solid #d0d7de;
   border-radius: 8px;
@@ -505,5 +505,6 @@ function handleLogout() { auth.logout(); router.push('/login'); }
   .hero { padding: 10px 14px; }
   .hero-content h2 { font-size: 0.9rem; }
   .hero-content p { font-size: 11px; }
+  .view-toggle-group { top: 45px;}
 }
 </style>

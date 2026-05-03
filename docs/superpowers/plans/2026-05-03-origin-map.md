@@ -572,7 +572,7 @@ onMounted(async () => {
 }
 .filter-btn:hover { background: #eaeef2; }
 .filter-btn.active { background: #ddf4ff; border-color: #54aeff; color: #0969da; font-weight: 600; }
-.filter-count { margin-left: auto; font-size: 11px; color: #57606a; }
+.filter-count { font-size: 11px; color: #57606a; }
 
 .map-wrap { flex: 1; min-height: 0; }
 
