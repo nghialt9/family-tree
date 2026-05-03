@@ -1,6 +1,6 @@
 <template>
   <div class="modal-overlay" @click.self="close">
-    <div class="modal">
+    <div class="upload-modal">
       <button class="close-btn" @click="close">✕</button>
       <h3>Tải lên media</h3>
 
@@ -157,7 +157,7 @@ async function upload() {
 
 <style scoped>
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
-.modal { background: #fff; border-radius: 12px; padding: 28px; width: 400px; max-width: 92vw; position: relative; }
+.upload-modal { background: #fff; border-radius: 12px; padding: 28px; width: 400px; max-width: 92vw; position: relative; }
 .close-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; font-size: 18px; cursor: pointer; color: #57606a; }
 h3 { margin: 0 0 18px; font-size: 16px; color: #24292f; }
 .file-area { border: 2px dashed #d0d7de; border-radius: 8px; padding: 32px 16px; text-align: center; cursor: pointer; font-size: 14px; color: #57606a; margin-bottom: 12px; }

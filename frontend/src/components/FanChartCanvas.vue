@@ -130,17 +130,18 @@ function computeLayout(): { nodes: any[]; edges: any[] } {
     startAngle: number,
     endAngle: number,
     edgeSourceMap: Map<string, string>,
-  ) {
-    if (ids.length === 0) return;
+    prevRadius: number = 0,
+  ): number {
+    if (ids.length === 0) return prevRadius;
     const isOuter = ring >= 3;
     const offsetX = isOuter ? -30 : -115;
     const offsetY = isOuter ? -26 : -40;
     const step = (endAngle - startAngle) / ids.length;
 
-    // Expand radius when many nodes would overlap in the arc
+    // Expand radius so nodes don't overlap, and never go inside the previous ring
     const arcRad = ((endAngle - startAngle) * Math.PI) / 180;
-    const minR = ids.length > 1 ? (ids.length * MIN_NODE_ARC_PX) / arcRad : ring * BASE_RING_RADIUS;
-    const r = Math.max(ring * BASE_RING_RADIUS, minR);
+    const minBySpacing = ids.length > 1 ? (ids.length * MIN_NODE_ARC_PX) / arcRad : 0;
+    const r = Math.max(prevRadius + BASE_RING_RADIUS, minBySpacing);
 
     ids.forEach((id, i) => {
       const angle = startAngle + step * (i + 0.5);
@@ -169,10 +170,12 @@ function computeLayout(): { nodes: any[]; edges: any[] } {
         });
       }
     });
+    return r;
   }
 
   // Ancestors: semicircle 180°–360° (sin negative → y negative → above center)
   let ancestorLayer = [centerId];
+  let ancestorPrevR = 0;
   for (let ring = 1; ring <= fanGenerations.value; ring++) {
     const nextLayer: string[] = [];
     const edgeMap = new Map<string, string>();
@@ -184,12 +187,13 @@ function computeLayout(): { nodes: any[]; edges: any[] } {
         }
       }
     }
-    placeRing(nextLayer, ring, 180, 360, edgeMap);
+    ancestorPrevR = placeRing(nextLayer, ring, 180, 360, edgeMap, ancestorPrevR);
     ancestorLayer = nextLayer;
   }
 
   // Descendants: semicircle 0°–180° (sin positive → y positive → below center)
   let descendantLayer = [centerId];
+  let descendantPrevR = 0;
   for (let ring = 1; ring <= fanGenerations.value; ring++) {
     const nextLayer: string[] = [];
     const edgeMap = new Map<string, string>();
@@ -201,7 +205,7 @@ function computeLayout(): { nodes: any[]; edges: any[] } {
         }
       }
     }
-    placeRing(nextLayer, ring, 0, 180, edgeMap);
+    descendantPrevR = placeRing(nextLayer, ring, 0, 180, edgeMap, descendantPrevR);
     descendantLayer = nextLayer;
   }
 
